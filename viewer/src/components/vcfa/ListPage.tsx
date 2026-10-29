@@ -423,7 +423,42 @@ function MappingList({ kind, title, ledger, onNav }: { kind: "image-profile" | "
   );
 }
 
+/** Collector version that first captured each kind of object. */
+const SINCE: Partial<Record<string, string>> = {
+  "cloud-account": "2026.3.0",
+  "cloud-zone": "2026.3.0",
+  "image-profile": "2026.3.0",
+  "flavor-profile": "2026.3.0",
+  "network-profile": "2026.3.0",
+  "storage-profile": "2026.3.0",
+  tag: "2026.3.0",
+};
+const older = (a: string, b: string) => {
+  const x = a.split(".").map(Number);
+  const y = b.split(".").map(Number);
+  for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) < (y[i] || 0);
+  return false;
+};
+
 export function ListPage({ page, ledger, onNav }: { page: PageId; ledger: Ledger; onNav: (k: string) => void }) {
+  const { item } = pageInfo(page);
+  const since = item.kind ? SINCE[item.kind] : undefined;
+  const made = ledger.manifest.tool?.version ?? "";
+  if (since && made && older(made, since)) {
+    return (
+      <>
+        <div className="callout warn vl-old">
+          This package was made with collector <strong>{made}</strong>, which did not capture {item.label.toLowerCase()} yet. Re-run{" "}
+          <code>Export-VCFALedgerPackage.ps1</code> {since} or later on this organization to see them here.
+        </div>
+        <ListPageInner page={page} ledger={ledger} onNav={onNav} />
+      </>
+    );
+  }
+  return <ListPageInner page={page} ledger={ledger} onNav={onNav} />;
+}
+
+function ListPageInner({ page, ledger, onNav }: { page: PageId; ledger: Ledger; onNav: (k: string) => void }) {
   const { item } = pageInfo(page);
   if (page === "image-mappings") return <MappingList kind="image-profile" title="Image Mappings" ledger={ledger} onNav={onNav} />;
   if (page === "flavor-mappings") return <MappingList kind="flavor-profile" title="Flavor Mappings" ledger={ledger} onNav={onNav} />;

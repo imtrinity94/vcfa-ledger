@@ -346,3 +346,4 @@
 .vx-tag.clickable { cursor: pointer; }
 .vx-tag.clickable:hover { border-color: var(--vx-blue); color: var(--vx-blue); }
 .vx-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.vl-old { margin-bottom: 16px; }

@@ -2,6 +2,10 @@
 
 Year-based versions (YEAR.MINOR.PATCH), single source in `package.json`.
 
+## 2026.6.1 - 2026-10-29
+
+- Infrastructure pages now say when a package was made with a collector older than 2026.3.0 (which did not capture infrastructure), instead of only showing 0 items
+
 ## 2026.6.0 - 2026-10-29
 
 - New **Infrastructure** tab, laid out like VCFA: Connections > Cloud Accounts; Configure > Cloud Zones, Flavor Mappings, Image Mappings, Network Profiles, Storage Profiles, Tags (needs collector 2026.3.0 or later)
