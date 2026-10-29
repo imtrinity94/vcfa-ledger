@@ -1,0 +1,7 @@
+node_modules
+dist
+dist-single
+*.package
+.vercel
+.DS_Store
+.claude-*

@@ -9,7 +9,7 @@ The project has two parts:
 | Part | Status | What it does |
 |---|---|---|
 | `collector/Export-VCFALedgerPackage.ps1` | 2026.1.3 | PowerShell 5.1 script. Logs into one VM Apps org and writes a `.vcfapkg` package (read-only, GET calls only). |
-| Viewer (web app) | planned | Opens a `.vcfapkg` in the browser: object tree, subscription cards, solution chains, diff between two exports. |
+| `viewer/` | 2026.1.0 | Web app that opens a `.vcfapkg` in the browser: object tree, subscription cards, template versions, solution diagrams. Same look as vRO Peekage. |
 
 ## Collector
 
@@ -65,6 +65,18 @@ When you use `-Select`, these are added for you:
 - ABX action flow → the actions inside it
 
 vRO workflows are recorded as links (`vro-workflow|<id>`) but not exported; they belong in the vRO package.
+
+## Viewer
+
+```bash
+cd viewer
+npm install
+npm run dev        # local, http://localhost:5173
+npm run build      # static build in dist/ (Vercel-ready, vercel.json included)
+npm run build:single   # one self-contained HTML file in dist-single/
+```
+
+The package is read in the browser only; nothing is uploaded. **Try the sample** on the front page loads `public/sample.vcfapkg`, made from test data.
 
 ## Package format
 
