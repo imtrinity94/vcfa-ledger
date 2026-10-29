@@ -51,7 +51,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $ToolName    = 'VCFA Ledger Collector'
-$ToolVersion = '2026.1.0'
+$ToolVersion = '2026.1.1'
 $FormatVersion = '1.0'
 
 # =====================================================================================
@@ -301,7 +301,8 @@ function Get-Section([string]$Section, [string]$Endpoint, [scriptblock]$Script) 
     }
     catch {
         $m = Get-ErrMsg $_
-        if ((Get-StatusCode $_) -eq 404) {
+        # 404, or a 500 that wraps a 404 (VCFA 9 answers unknown endpoints with "No static resource ...")
+        if ((Get-StatusCode $_) -eq 404 -or $m -match 'NOT_FOUND|No static resource') {
             Write-Host 'not available on this server' -ForegroundColor Gray
             Add-Log $Section $Endpoint 'NOT_AVAILABLE' 0 $m
             return , @()

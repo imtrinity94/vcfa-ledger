@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026.1.1 - 2026-10-29
+
+- An endpoint the server does not have is now reported as "not available" instead of "FAILED", including VCFA 9's 500 "No static resource" reply (seen for ABX action flows)
+
 ## 2026.1.0 - 2026-10-29
 
 First version of the collector.
