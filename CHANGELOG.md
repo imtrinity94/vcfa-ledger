@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.1.3 - 2026-10-29
+
+Fixes from the first real VCFA 9 export (vmapps-org):
+
+- Catalog item → template link now read from the item's `externalId`; on 9.x the item and template ids differ
+- Catalog item project read from `sourceProjectId`
+- New `applies-to` link: a policy that names a content source or catalog item (e.g. content sharing) now links to it. These links never pull objects in on their own with `-Select`
+
 ## 2026.1.2 - 2026-10-29
 
 - ABX action flows now come from the ABX actions list (they are actions with `actionType` FLOW); the separate `/abx/api/resources/action-flows` call is removed, it was never a real endpoint

@@ -51,7 +51,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $ToolName    = 'VCFA Ledger Collector'
-$ToolVersion = '2026.1.2'
+$ToolVersion = '2026.1.3'
 $FormatVersion = '1.0'
 
 # =====================================================================================
@@ -449,7 +449,7 @@ function Add-Inv($Category, $Kind, $Obj, $Detail) {
     $id = "$(Get-P $Obj @('id', 'name'))"
     $inventory.Add([pscustomobject]@{
         Category = $Category; Kind = $Kind; Id = $id; Name = "$(Get-P $Obj @('name', 'displayName', 'id'))"
-        Project = Get-ProjName (Get-P $Obj @('projectId')); Detail = $Detail; Key = "$Kind|$id"; Obj = $Obj
+        Project = Get-ProjName (Get-P $Obj @('projectId', 'sourceProjectId')); Detail = $Detail; Key = "$Kind|$id"; Obj = $Obj
     })
 }
 foreach ($o in $blueprints)  { Add-Inv 'Cloud templates'   'template'        $o "$(Get-P $o @('status'))" }
@@ -491,7 +491,7 @@ function Add-Link($From, $To, $Rel) {
     $links.Add([ordered]@{ from = $From; to = $To; rel = $Rel })
 }
 
-$idTargets = @($inventory | Where-Object { $_.Kind -in @('abx-action', 'template', 'custom-resource') -and $_.Id.Length -ge 8 })
+$idTargets = @($inventory | Where-Object { $_.Kind -in @('abx-action', 'template', 'custom-resource', 'content-source', 'catalog-item') -and $_.Id.Length -ge 8 })
 $pgByName = @{}
 foreach ($i in ($inventory | Where-Object Kind -eq 'property-group')) { $pgByName[$i.Name] = $i }
 $crByType = @{}
@@ -500,7 +500,7 @@ foreach ($i in ($inventory | Where-Object Kind -eq 'custom-resource')) { $t = Ge
 function Resolve-Links($Inv, [string]$Text) {
     foreach ($t in $idTargets) {
         if ($t.Key -ne $Inv.Key -and $Text.Contains($t.Id)) {
-            $rel = switch ($t.Kind) { 'template' { 'uses-template' } 'custom-resource' { 'uses-custom-resource' } default { 'runs' } }
+            $rel = switch ($t.Kind) { 'template' { 'uses-template' } 'custom-resource' { 'uses-custom-resource' } 'content-source' { 'applies-to' } 'catalog-item' { 'applies-to' } default { 'runs' } }
             Add-Link $Inv.Key $t.Key $rel
         }
     }
@@ -514,9 +514,12 @@ function Resolve-Links($Inv, [string]$Text) {
     }
 }
 
-# Catalog item -> template: VCT catalog items carry the template id
+# Catalog item -> template: 9.x items point at the template in externalId (/blueprint/api/blueprints/<id>)
 foreach ($i in ($inventory | Where-Object Kind -eq 'catalog-item')) {
-    $bpKey = "template|$($i.Id)"
+    $bpId = $i.Id
+    $ext = "$(Get-P $i.Obj @('externalId'))"
+    if ($ext -match '/blueprint/api/blueprints/([^/?]+)') { $bpId = $Matches[1] }
+    $bpKey = "template|$bpId"
     if ($byKey.ContainsKey($bpKey)) { Add-Link $i.Key $bpKey 'publishes' }
     $srcId = Get-P $i.Obj @('sourceId')
     if ($srcId -and $byKey.ContainsKey("content-source|$srcId")) { Add-Link $i.Key "content-source|$srcId" 'from-source' }
@@ -542,7 +545,7 @@ function Expand-Selection {
     while ($changed) {
         $changed = $false
         foreach ($l in $links.ToArray()) {
-            if ($selected.ContainsKey($l.from) -and -not $selected.ContainsKey($l.to) -and $l.rel -ne 'from-source') {
+            if ($selected.ContainsKey($l.from) -and -not $selected.ContainsKey($l.to) -and $l.rel -ne 'from-source' -and $l.rel -ne 'applies-to') {
                 $selected[$l.to] = $true; $changed = $true
             }
         }
@@ -665,7 +668,7 @@ foreach ($i in @($inventory | Where-Object { $selected.ContainsKey($_.Key) })) {
                 $meta.hasCustomForm = $true
             }
             $meta.type = Get-P $d.item.type @('id')
-            $meta.projects = @(@(Get-P $d.item @('projectIds')) | ForEach-Object { Get-ProjName $_ } | Where-Object { $_ })
+            $meta.projects = @(@(Get-P $d.item @('projectIds', 'sourceProjectId')) | ForEach-Object { Get-ProjName $_ } | Where-Object { $_ })
         }
         'content-source' {
             $mainPath = Get-ObjPath 'catalog/sources' $i.Name $i.Id '.json'

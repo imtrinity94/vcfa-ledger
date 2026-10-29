@@ -8,7 +8,7 @@ The project has two parts:
 
 | Part | Status | What it does |
 |---|---|---|
-| `collector/Export-VCFALedgerPackage.ps1` | 2026.1.2 | PowerShell 5.1 script. Logs into one VM Apps org and writes a `.vcfapkg` package (read-only, GET calls only). |
+| `collector/Export-VCFALedgerPackage.ps1` | 2026.1.3 | PowerShell 5.1 script. Logs into one VM Apps org and writes a `.vcfapkg` package (read-only, GET calls only). |
 | Viewer (web app) | planned | Opens a `.vcfapkg` in the browser: object tree, subscription cards, solution chains, diff between two exports. |
 
 ## Collector
@@ -59,7 +59,7 @@ Same order as the config workbook collector: `POST /cloudapi/1.0.0/sessions` wit
 
 When you use `-Select`, these are added for you:
 
-- catalog item → the cloud template it publishes
+- catalog item → the cloud template it publishes (from its `externalId`)
 - template → property groups (`propertyGroups.<name>`) and custom resource types (`Custom.*`) it uses
 - subscription, resource action, custom resource → the ABX action it runs
 - ABX action flow → the actions inside it

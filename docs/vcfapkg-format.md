@@ -74,16 +74,17 @@ Each JSON file holds the object exactly as the API returned it, apart from the l
 
 | rel | from → to |
 |---|---|
-| `publishes` | catalog item → template |
+| `publishes` | catalog item → template (from the item's `externalId`) |
 | `from-source` | catalog item → content source |
 | `uses-property-group` | template → property group |
 | `uses-custom-resource` | template → custom resource type |
 | `uses-template` | anything → template (id found in its definition) |
 | `runs` | subscription / resource action / custom resource / action flow → ABX action or `vro-workflow|<id>` |
 | `recovers-with` | subscription → recover workflow |
+| `applies-to` | policy (or anything else) → content source or catalog item named in its definition, e.g. a content sharing policy → the source it shares |
 
 `vro-workflow|<id>` targets are external: the workflow lives in the vRO package, and the viewer can match it when both are loaded.
 
 ### log[]
 
-One entry per call that did not return OK: `section`, `endpoint`, `status` (`FAILED` or `NOT_AVAILABLE`), `message`.
+One entry per list call (`OK`, `FAILED` or `NOT_AVAILABLE`) plus one per failed detail call: `section`, `endpoint`, `status`, `count`, `message`.
