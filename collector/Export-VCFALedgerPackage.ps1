@@ -51,7 +51,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $ToolName    = 'VCFA Ledger Collector'
-$ToolVersion = '2026.1.3'
+$ToolVersion = '2026.1.4'
 $FormatVersion = '1.0'
 
 # =====================================================================================
@@ -310,6 +310,36 @@ function Get-Section([string]$Section, [string]$Endpoint, [scriptblock]$Script) 
         Write-Host "FAILED  $m" -ForegroundColor Yellow
         Add-Log $Section $Endpoint 'FAILED' 0 $m
         return , @()
+    }
+}
+
+# Download a catalog / content source icon once into icons/<iconId>.<ext>; returns the package path or $null
+$script:IconPaths = @{}
+function Save-Icon([string]$IconId) {
+    if (-not $IconId) { return $null }
+    if ($script:IconPaths.ContainsKey($IconId)) { return $script:IconPaths[$IconId] }
+    $script:IconPaths[$IconId] = $null
+    $wo = Get-WebOpts
+    $uri = "$($script:Conn.Base)/icon/api/icons/$([uri]::EscapeDataString($IconId))"
+    for ($attempt = 0; $attempt -lt 2; $attempt++) {
+        try {
+            $resp = Invoke-WebRequest @wo -Method Get -Uri $uri -Headers @{ Authorization = "Bearer $($script:Conn.Token)"; Accept = 'image/*' }
+            $ct = "$(Get-Header $resp 'Content-Type')".ToLowerInvariant()
+            $ext = switch -regex ($ct) { 'svg' { '.svg' } 'png' { '.png' } 'jpe?g' { '.jpg' } 'gif' { '.gif' } 'webp' { '.webp' } default { '.img' } }
+            $bytes = $resp.RawContentStream.ToArray()
+            $rel = "icons/$(ConvertTo-SafeName $IconId)$ext"
+            $full = Join-Path $script:PkgDir ($rel -replace '/', [IO.Path]::DirectorySeparatorChar)
+            $dir = Split-Path $full -Parent
+            if (-not (Test-Path $dir)) { [void](New-Item -ItemType Directory -Path $dir -Force) }
+            [IO.File]::WriteAllBytes($full, $bytes)
+            $script:IconPaths[$IconId] = $rel
+            return $rel
+        }
+        catch {
+            if ($attempt -eq 0 -and (Get-StatusCode $_) -eq 401) { $script:Conn.Token = Connect-Vcfa; continue }
+            if ((Get-StatusCode $_) -ne 404) { Add-Log 'Icon' "/icon/api/icons/$IconId" 'FAILED' 0 (Get-ErrMsg $_) }
+            return $null
+        }
     }
 }
 
@@ -668,12 +698,17 @@ foreach ($i in @($inventory | Where-Object { $selected.ContainsKey($_.Key) })) {
                 $meta.hasCustomForm = $true
             }
             $meta.type = Get-P $d.item.type @('id')
+            $meta.typeName = Get-P $d.item.type @('name')
+            $ip = Save-Icon "$(Get-P $d.item @('iconId'))"
+            if ($ip) { $meta.icon = $ip; $files.Add($ip) }
             $meta.projects = @(@(Get-P $d.item @('projectIds', 'sourceProjectId')) | ForEach-Object { Get-ProjName $_ } | Where-Object { $_ })
         }
         'content-source' {
             $mainPath = Get-ObjPath 'catalog/sources' $i.Name $i.Id '.json'
             Save-Json $mainPath $d; $files.Add($mainPath)
             $meta.typeId = Get-P $d @('typeId')
+            $ip = Save-Icon "$(Get-P $d @('iconId'))"
+            if ($ip) { $meta.icon = $ip; $files.Add($ip) }
         }
         'policy' {
             $t = "$(Get-P $d @('typeId'))" -replace '^com\.vmware\.policy\.', ''

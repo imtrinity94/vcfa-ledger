@@ -4,22 +4,24 @@ import { Sidebar } from "./components/Sidebar";
 import { Overview } from "./components/Overview";
 import { ObjectView } from "./components/ObjectView";
 import { Landing } from "./components/Landing";
+import { Catalog } from "./components/vcfa/Catalog";
 import { BackToTop } from "./components/BackToTop";
 import { Logo } from "./components/Icons";
 import { APP_VERSION } from "./version";
 
-type View = { kind: "overview" } | { kind: "object"; key: string };
+type View = { kind: "overview" } | { kind: "catalog" } | { kind: "object"; key: string };
 type Theme = "system" | "light" | "dark";
 
 const HOME_TITLE = typeof document !== "undefined" ? document.title : "VCFA Ledger";
 
 function readHash(): View {
   const h = decodeURIComponent(location.hash.slice(1));
+  if (h === "/catalog") return { kind: "catalog" };
   const m = /^\/o\/(.+)$/.exec(h);
   return m ? { kind: "object", key: m[1] } : { kind: "overview" };
 }
 function writeHash(v: View) {
-  const h = v.kind === "object" ? `#/o/${encodeURIComponent(v.key)}` : "#/";
+  const h = v.kind === "object" ? `#/o/${encodeURIComponent(v.key)}` : v.kind === "catalog" ? "#/catalog" : "#/";
   if (location.hash !== h) history.pushState(null, "", h);
 }
 
@@ -70,7 +72,7 @@ export default function App() {
         setLedger(l);
         document.title = `${l.manifest.source.organization || name} · VCFA Ledger`;
         const h = readHash();
-        if (h.kind === "object" && l.byKey.has(h.key)) setView(h);
+        if ((h.kind === "object" && l.byKey.has(h.key)) || h.kind === "catalog") setView(h);
         else go({ kind: "overview" });
       } catch (e) {
         const msg = (e as Error).message;
@@ -207,6 +209,9 @@ export default function App() {
             <button className={`btn-ghost ${view.kind === "overview" ? "on" : ""}`} onClick={() => go({ kind: "overview" })}>
               Overview
             </button>
+            <button className={`btn-ghost ${view.kind === "catalog" ? "on" : ""}`} onClick={() => go({ kind: "catalog" })}>
+              Catalog
+            </button>
             <button className="btn" onClick={() => inputRef.current?.click()}>
               Open…
             </button>
@@ -244,7 +249,8 @@ export default function App() {
           <Sidebar ledger={ledger} selected={obj?.key} onSelect={(key) => go({ kind: "object", key })} />
           <main className="main" ref={mainRef}>
             {error && <div className="callout warn">{error}</div>}
-            {view.kind === "overview" && <Overview ledger={ledger} onNav={(key) => go({ kind: "object", key })} />}
+            {view.kind === "overview" && <Overview ledger={ledger} onNav={(key) => go({ kind: "object", key })} onCatalog={() => go({ kind: "catalog" })} />}
+            {view.kind === "catalog" && <Catalog ledger={ledger} onNav={(key) => go({ kind: "object", key })} />}
             {view.kind === "object" && obj && <ObjectView key={obj.key} o={obj} ledger={ledger} onNav={(key) => go({ kind: "object", key })} />}
             {view.kind === "object" && !obj && <p className="muted">Object not found in this package.</p>}
           </main>

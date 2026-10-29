@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.1.4 - 2026-10-29
+
+- Catalog item and content source icons are downloaded from `/icon/api/icons/<iconId>` into `icons/`, so the viewer can show the real catalog icons
+- Catalog items record their type name (`meta.typeName`)
+
 ## 2026.1.3 - 2026-10-29
 
 Fixes from the first real VCFA 9 export (vmapps-org):

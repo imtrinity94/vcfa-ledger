@@ -25,6 +25,7 @@ abx/<name>/source.yaml             flow definition, for action flows (actionType
 property-groups/<name>.json
 custom-resources/<name>.json       custom resource types
 resource-actions/<name>.json       custom day-2 actions (form definition included)
+icons/<iconId>.png|.svg|.jpg       catalog item and content source icons (once per icon id)
 ```
 
 Names are the object's display name with characters that are not allowed in file names replaced by `_`. When two objects of the same type share a name, the second gets the first 8 characters of its id appended.
@@ -64,7 +65,7 @@ Each JSON file holds the object exactly as the API returned it, apart from the l
 | `selectedBy` | `user`, or `dependency` when it was pulled in by a link |
 | `path` | main file of the object |
 | `files` | every file written for the object |
-| `meta` | quick-view fields so the viewer can draw cards without opening each file, e.g. for subscriptions: `eventTopicId`, `blocking`, `priority`, `timeout`, `criteria`, `runnableType`, `runnableId`, `projects` |
+| `meta` | quick-view fields so the viewer can draw cards without opening each file, e.g. `icon` (package path of the icon) for catalog items and content sources; for subscriptions: `eventTopicId`, `blocking`, `priority`, `timeout`, `criteria`, `runnableType`, `runnableId`, `projects` |
 
 ### links[]
 

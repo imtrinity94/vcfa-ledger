@@ -79,6 +79,8 @@ export interface Ledger {
   byKey: Map<string, LedgerObject>;
   /** text of every file, by path inside the package */
   files: Map<string, string>;
+  /** images (icons/), as data: URLs, by path inside the package */
+  images: Map<string, string>;
   topics: Map<string, Record<string, unknown>>;
   projects: { id: string; name: string; description?: string }[];
 }
@@ -108,10 +110,17 @@ export async function parseLedger(buf: ArrayBuffer, fileName: string): Promise<L
   if (!mfEntry) throw new Error("This doesn't look like a VCFA Ledger package (no manifest.json found).");
   const prefix = mfEntry.name.slice(0, mfEntry.name.length - "manifest.json".length);
   const files = new Map<string, string>();
+  const images = new Map<string, string>();
+  const MIME: Record<string, string> = { svg: "image/svg+xml", png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp" };
   await Promise.all(
     Object.values(zip.files)
       .filter((f) => !f.dir && f.name.startsWith(prefix))
-      .map(async (f) => files.set(f.name.slice(prefix.length), await f.async("string"))),
+      .map(async (f) => {
+        const rel = f.name.slice(prefix.length);
+        const ext = (/\.([a-z0-9]+)$/i.exec(rel)?.[1] ?? "").toLowerCase();
+        if (rel.startsWith("icons/")) images.set(rel, `data:${MIME[ext] ?? "application/octet-stream"};base64,${await f.async("base64")}`);
+        else files.set(rel, await f.async("string"));
+      }),
   );
   const manifest = JSON.parse(stripBom(files.get("manifest.json")!)) as Manifest;
   if (manifest.format !== "vcfapkg") throw new Error("manifest.json is not a .vcfapkg manifest.");
@@ -168,7 +177,7 @@ export async function parseLedger(buf: ArrayBuffer, fileName: string): Promise<L
       topics.set(t.id, { id: t.id, name: t.name });
     }
   }
-  return { fileName, manifest, objects, byKey, files, topics, projects };
+  return { fileName, manifest, objects, byKey, files, images, topics, projects };
 }
 
 function stripBom(s: string) {

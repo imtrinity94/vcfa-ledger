@@ -2,6 +2,13 @@
 
 Year-based versions (YEAR.MINOR.PATCH), single source in `package.json`.
 
+## 2026.3.0 - 2026-10-29
+
+- New **Catalog** page (top bar, or the Catalog Items tile) laid out like VCF Automation Service Broker > Consume > Catalog: item count, project filter, search, sort, card and list views, read-only
+- Cards show the real catalog icon when the package has it (collector 2026.1.4 and later), otherwise VCFA's default icon for the item type
+- Nothing is hidden: long descriptions expand in place, and every card also shows type, content source, the template it publishes and whether it has a custom form; the list view has all of these as columns
+- Clicking a card opens the full catalog item page, which now shows its icon and description too
+
 ## 2026.2.0 - 2026-10-29
 
 - Content sharing policies now open as a read-only replica of the VCF Automation Service Broker policy page: Type, Name, Description, Scope (Organization / Multiple Projects or Project), Content sharing grid (items shared and their content source), Entitlement type (User / Role based) and Users

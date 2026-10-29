@@ -3,6 +3,7 @@ import { CodeBlock } from "./CodeBlock";
 import { KindIcon } from "./Icons";
 import { ChainDiagram } from "./ChainDiagram";
 import { ContentSharingPolicy } from "./vcfa/ContentSharingPolicy";
+import { ItemIcon } from "./vcfa/Catalog";
 import { kindLabel, langFor, policyTypeLabel, readJson, relLabel, shortId, type Ledger, type LedgerObject, type Ref } from "../lib/ledger";
 
 type J = Record<string, unknown>;
@@ -158,6 +159,10 @@ function CatalogView({ o, l }: { o: LedgerObject; l: Ledger }) {
   return (
     <>
       <Card title="Catalog item">
+        <div className="vc-item-head">
+          <ItemIcon o={o} l={l} size={48} />
+          {s(item?.description) && <p className="el-desc" style={{ margin: 0 }}>{s(item?.description)}</p>}
+        </div>
         <dl className="kv">
           <dt>Type</dt>
           <dd>{s((item?.type as J)?.name) || s(o.meta.type)}</dd>
@@ -452,7 +457,7 @@ export function ObjectView({ o, ledger, onNav }: { o: LedgerObject; ledger: Ledg
           <span className="chip mono" title="ID">{o.id}</span>
           {o.selectedBy === "dependency" && <span className="chip accent" title="Not picked directly: added because something in the export uses it">added as dependency</span>}
         </div>
-        {desc && o.type !== "property-group" && <p className="el-desc">{desc}</p>}
+        {desc && o.type !== "property-group" && o.type !== "catalog-item" && <p className="el-desc">{desc}</p>}
       </div>
 
       {(o.out.length > 0 || o.in.length > 0) && (

@@ -164,3 +164,50 @@
   .vx-label { padding: 14px 0 0; }
   .vx-title { font-size: 24px; }
 }
+
+/* ---------- VCFA Consume > Catalog replica ---------- */
+.vc { max-width: none !important; }
+.vc-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.vc-title { font-size: 30px; font-weight: 400; margin: 0; letter-spacing: -0.01em; }
+.vc-count { font-size: 11px; border: 1px solid var(--vx-line); border-radius: 12px; padding: 0 8px; line-height: 20px; }
+.vc-filter { display: inline-flex; align-items: center; gap: 4px; color: var(--vx-blue); margin-left: 12px; }
+.vc-filter select { border: 0; background: none; color: var(--vx-blue); font: 600 12px/1 "Clarity City", system-ui, sans-serif; letter-spacing: 0.07em; cursor: pointer; padding: 4px 2px; }
+.vc-search { display: inline-flex; align-items: center; gap: 6px; border-bottom: 1px solid var(--vx-line); padding: 2px 4px; color: var(--vx-help); }
+.vc-search input { border: 0; background: none; color: var(--text); font: inherit; font-size: 13px; outline: none; width: 160px; }
+.vc-sort { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; margin-left: 14px; }
+.vc-sort select { border: 0; border-bottom: 1px solid var(--vx-line); background: none; color: var(--text); font: inherit; font-size: 13px; padding: 2px 2px; }
+.vc-layout { display: inline-flex; gap: 2px; margin-left: 10px; }
+.vc-layout button { background: none; border: 0; color: var(--vx-help); padding: 2px; cursor: pointer; display: grid; place-items: center; }
+.vc-layout button.on { color: var(--vx-blue); }
+.vc-usage { font-size: 12.5px; margin: 6px 0 18px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.vc-ro { margin-left: 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--border); border-radius: 3px; padding: 0 6px; }
+.vc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.vc-card { background: var(--panel); border: 1px solid var(--vx-grid-line); border-radius: 3px; box-shadow: 0 2px 0 0 var(--vx-grid-line); display: flex; flex-direction: column; cursor: pointer; min-width: 0; }
+.vc-card:hover { border-color: var(--vx-blue); box-shadow: 0 2px 0 0 var(--vx-blue); }
+.vc-card:focus-visible { outline: 2px solid var(--vx-blue); outline-offset: 1px; }
+.vc-card-body { padding: 12px 12px 6px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+.vc-icon { display: grid; place-items: center; height: 44px; }
+.vc-name { color: var(--vx-blue); text-align: center; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; }
+.vc-desc { font-size: 11.5px; line-height: 1.5; color: var(--vx-ink); display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-wrap; overflow-wrap: anywhere; }
+.vc-desc.open { display: block; -webkit-line-clamp: unset; }
+.vc-desc-empty { min-height: 1em; }
+.vc-more { background: none; border: 0; padding: 0; margin-top: 2px; color: var(--vx-blue); font-size: 11.5px; cursor: pointer; }
+.vc-more:hover { text-decoration: underline; }
+.vc-meta { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 3px 14px; margin: 0; padding: 8px 12px 10px; font-size: 12px; }
+.vc-meta dt { font-weight: 600; }
+.vc-meta dd { margin: 0; overflow-wrap: anywhere; color: var(--vx-ink); }
+.vc-meta dt:not(:first-of-type), .vc-meta dt:not(:first-of-type) + dd { color: var(--vx-help); font-weight: 400; font-size: 11.5px; }
+.vc-foot { border-top: 1px solid var(--vx-grid-line); padding: 9px 12px; font: 600 11px/1 "Clarity City", system-ui, sans-serif; letter-spacing: 0.07em; color: var(--vx-blue); }
+.vc-list { max-width: none; }
+.vc-list-row { display: grid; grid-template-columns: 44px minmax(140px, 1.2fr) minmax(0, 2fr) minmax(90px, 0.7fr) minmax(110px, 0.9fr) minmax(90px, 0.7fr) minmax(100px, 0.9fr); align-items: center; border-bottom: 1px solid var(--vx-grid-line); min-height: 40px; cursor: pointer; font-size: 13px; }
+.vc-list-row.vx-grid-head { cursor: default; }
+.vc-list-row > span { padding: 6px 10px; min-width: 0; overflow-wrap: anywhere; }
+.vc-list-row:not(.vx-grid-head):hover { background: var(--panel-2); }
+.vc-list-ico { display: grid; place-items: center; }
+.vc-list-desc { font-size: 12px; color: var(--vx-help); white-space: pre-wrap; }
+.vc-item-head { display: flex; gap: 14px; align-items: center; margin-bottom: 12px; }
+@media (max-width: 860px) {
+  .vc-list-row { grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1fr); }
+  .vc-list-row > span:nth-child(n+4) { display: none; }
+  .vc-sort { margin-left: 0; }
+}

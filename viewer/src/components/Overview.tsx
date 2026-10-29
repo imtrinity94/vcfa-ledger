@@ -8,7 +8,7 @@ function fmtDate(s?: string) {
   return isNaN(+d) ? s : d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-export function Overview({ ledger, onNav }: { ledger: Ledger; onNav: (key: string) => void }) {
+export function Overview({ ledger, onNav, onCatalog }: { ledger: Ledger; onNav: (key: string) => void; onCatalog: () => void }) {
   const m = ledger.manifest;
   const sols = useMemo(() => solutions(ledger), [ledger]);
   const deps = ledger.objects.filter((o) => o.selectedBy === "dependency").length;
@@ -58,7 +58,7 @@ export function Overview({ ledger, onNav }: { ledger: Ledger; onNav: (key: strin
               key={k.kind}
               className="tile"
               style={{ textAlign: "left", cursor: items.length ? "pointer" : "default", opacity: items.length ? 1 : 0.55 }}
-              onClick={() => items[0] && onNav(items.sort((a, b) => a.name.localeCompare(b.name))[0].key)}
+              onClick={() => (k.kind === "catalog-item" && items.length ? onCatalog() : items[0] && onNav([...items].sort((a, b) => a.name.localeCompare(b.name))[0].key))}
               disabled={!items.length}
             >
               <div className="tile-top">
