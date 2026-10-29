@@ -1,27 +1,38 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { formatBytes, parseLedger, type Ledger } from "./lib/ledger";
-import { Sidebar } from "./components/Sidebar";
 import { Overview } from "./components/Overview";
 import { ObjectView } from "./components/ObjectView";
 import { Landing } from "./components/Landing";
 import { Catalog } from "./components/vcfa/Catalog";
+import { VNav } from "./components/vcfa/VNav";
+import { ListPage, pageCount } from "./components/vcfa/ListPage";
+import { SECTIONS, firstPage, pageForKind, pageInfo, sectionOf, type PageId, type SectionId } from "./lib/sections";
 import { BackToTop } from "./components/BackToTop";
 import { Logo } from "./components/Icons";
 import { APP_VERSION } from "./version";
 
-type View = { kind: "overview" } | { kind: "catalog" } | { kind: "object"; key: string };
+type View = { kind: "overview" } | { kind: "page"; page: PageId } | { kind: "object"; key: string };
 type Theme = "system" | "light" | "dark";
 
 const HOME_TITLE = typeof document !== "undefined" ? document.title : "VCFA Ledger";
 
 function readHash(): View {
   const h = decodeURIComponent(location.hash.slice(1));
-  if (h === "/catalog") return { kind: "catalog" };
+  if (h === "/catalog") return { kind: "page", page: "catalog" };
+  const pm = /^\/p\/(.+)$/.exec(h);
+  if (pm) {
+    try {
+      pageInfo(pm[1] as PageId);
+      return { kind: "page", page: pm[1] as PageId };
+    } catch {
+      return { kind: "overview" };
+    }
+  }
   const m = /^\/o\/(.+)$/.exec(h);
   return m ? { kind: "object", key: m[1] } : { kind: "overview" };
 }
 function writeHash(v: View) {
-  const h = v.kind === "object" ? `#/o/${encodeURIComponent(v.key)}` : v.kind === "catalog" ? "#/catalog" : "#/";
+  const h = v.kind === "object" ? `#/o/${encodeURIComponent(v.key)}` : v.kind === "page" ? `#/p/${v.page}` : "#/";
   if (location.hash !== h) history.pushState(null, "", h);
 }
 
@@ -72,7 +83,7 @@ export default function App() {
         setLedger(l);
         document.title = `${l.manifest.source.organization || name} · VCFA Ledger`;
         const h = readHash();
-        if ((h.kind === "object" && l.byKey.has(h.key)) || h.kind === "catalog") setView(h);
+        if ((h.kind === "object" && l.byKey.has(h.key)) || h.kind === "page") setView(h);
         else go({ kind: "overview" });
       } catch (e) {
         const msg = (e as Error).message;
@@ -146,6 +157,21 @@ export default function App() {
   }, [load]);
 
   const obj = view.kind === "object" && ledger ? ledger.byKey.get(view.key) : undefined;
+  // Active top tab and left-nav page follow the view; objects keep the tab you came from when they belong to it
+  const lastTab = useRef<SectionId>("home");
+  const activePage: PageId | undefined =
+    view.kind === "page" ? view.page : obj ? pageForKind(obj.type, lastTab.current === "home" ? undefined : lastTab.current) : undefined;
+  const tab: SectionId = view.kind === "overview" ? "home" : activePage ? pageInfo(activePage).section.id : "home";
+  lastTab.current = tab;
+  const counts = useMemo(() => {
+    const c: Partial<Record<PageId, number>> = {};
+    if (ledger) for (const sec of SECTIONS) for (const g of sec.nav) for (const it of g.items) c[it.page] = pageCount(it.page, ledger);
+    return c;
+  }, [ledger]);
+  const openTab = (id: SectionId) => {
+    const first = firstPage(sectionOf(id));
+    go(first ? { kind: "page", page: first } : { kind: "overview" });
+  };
 
   return (
     <div className="app">
@@ -206,12 +232,6 @@ export default function App() {
               </svg>
               <span>Home</span>
             </button>
-            <button className={`btn-ghost ${view.kind === "overview" ? "on" : ""}`} onClick={() => go({ kind: "overview" })}>
-              Overview
-            </button>
-            <button className={`btn-ghost ${view.kind === "catalog" ? "on" : ""}`} onClick={() => go({ kind: "catalog" })}>
-              Catalog
-            </button>
             <button className="btn" onClick={() => inputRef.current?.click()}>
               Open…
             </button>
@@ -245,16 +265,33 @@ export default function App() {
       {!ledger ? (
         <Landing scrollRef={landingRef} onPick={() => inputRef.current?.click()} onSample={loadSample} busy={busy} error={error} />
       ) : (
-        <div className={`shell ${navOpen ? "nav-open" : ""}`}>
-          <Sidebar ledger={ledger} selected={obj?.key} onSelect={(key) => go({ kind: "object", key })} />
-          <main className="main" ref={mainRef}>
-            {error && <div className="callout warn">{error}</div>}
-            {view.kind === "overview" && <Overview ledger={ledger} onNav={(key) => go({ kind: "object", key })} onCatalog={() => go({ kind: "catalog" })} />}
-            {view.kind === "catalog" && <Catalog ledger={ledger} onNav={(key) => go({ kind: "object", key })} />}
-            {view.kind === "object" && obj && <ObjectView key={obj.key} o={obj} ledger={ledger} onNav={(key) => go({ kind: "object", key })} />}
-            {view.kind === "object" && !obj && <p className="muted">Object not found in this package.</p>}
-          </main>
-        </div>
+        <>
+          <nav className="vtabs" aria-label="Sections">
+            {SECTIONS.map((sec) => (
+              <button key={sec.id} className={`vtab${tab === sec.id ? " on" : ""}`} onClick={() => openTab(sec.id)}>
+                {sec.label}
+              </button>
+            ))}
+          </nav>
+          <div className={`shell${tab === "home" ? " no-nav" : ""} ${navOpen ? "nav-open" : ""}`}>
+            {tab !== "home" && <VNav key={tab} section={sectionOf(tab)} active={activePage} counts={counts} onPage={(page) => go({ kind: "page", page })} />}
+            <main className="main" ref={mainRef}>
+              {error && <div className="callout warn">{error}</div>}
+              {view.kind === "overview" && <Overview ledger={ledger} onNav={(key) => go({ kind: "object", key })} onCatalog={() => go({ kind: "page", page: "catalog" })} />}
+              {view.kind === "page" && view.page === "catalog" && <Catalog ledger={ledger} onNav={(key) => go({ kind: "object", key })} />}
+              {view.kind === "page" && view.page !== "catalog" && <ListPage page={view.page} ledger={ledger} onNav={(key) => go({ kind: "object", key })} />}
+              {view.kind === "object" && obj && (
+                <>
+                  <button className="vx-link vl-back" onClick={() => go({ kind: "page", page: activePage ?? "catalog" })}>
+                    ‹ {activePage ? pageInfo(activePage).item.label : "Back"}
+                  </button>
+                  <ObjectView key={obj.key} o={obj} ledger={ledger} onNav={(key) => go({ kind: "object", key })} />
+                </>
+              )}
+              {view.kind === "object" && !obj && <p className="muted">Object not found in this package.</p>}
+            </main>
+          </div>
+        </>
       )}
       <BackToTop key={ledger ? "app" : "home"} target={ledger ? mainRef : landingRef} />
     </div>

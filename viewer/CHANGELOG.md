@@ -2,6 +2,19 @@
 
 Year-based versions (YEAR.MINOR.PATCH), single source in `package.json`.
 
+## 2026.5.0 - 2026-10-29
+
+- VCF Automation style top tabs: **Home, Consume, Design, Content & Policies, Extensibility, Orchestrator**
+- Each tab has its own VCFA left navigation, and each entry opens its own list page (Clarity datagrid with search, sortable columns and item count) instead of one combined tree:
+  - Consume: Catalog
+  - Design: Templates, Custom Resources, Custom Actions, Property Groups
+  - Content & Policies: Content Sources, Content, Policies > Definitions (with a policy type filter)
+  - Extensibility: Subscriptions, Event Topics (expand a row for its payload schema), Library > Actions, Library > Workflows
+  - Orchestrator: Workflows, listing every vRO workflow the package runs and what uses it
+- Opening an object keeps its tab and left-nav entry selected, with a back link to its list
+- Home shows the package overview full width, without a left nav, as in VCFA
+- The combined object tree from earlier versions is removed
+
 ## 2026.4.0 - 2026-10-29
 
 - Catalog items now open with a live **New Request** preview laid out like VCF Automation: project, deployment name and every input, in a page you can click through and type into. Nothing is ever submitted
