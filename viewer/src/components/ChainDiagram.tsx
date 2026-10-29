@@ -17,7 +17,7 @@ const GX = 78;
 const GY = 16;
 const PAD = 14;
 
-const KIND_ORDER = ["catalog-item", "subscription", "resource-action", "policy", "template", "custom-resource", "abx-action", "property-group", "vro-workflow"];
+const KIND_ORDER = ["catalog-item", "subscription", "resource-action", "policy", "template", "custom-resource", "abx-action", "property-group", "image-profile", "flavor-profile", "vro-workflow"];
 const BAR: Record<string, string> = {
   template: "var(--k-template)",
   "catalog-item": "var(--k-catalog)",
@@ -29,6 +29,8 @@ const BAR: Record<string, string> = {
   "custom-resource": "var(--k-custom)",
   "resource-action": "var(--k-raction)",
   "vro-workflow": "var(--k-vro)",
+  "image-profile": "var(--k-infra)",
+  "flavor-profile": "var(--k-infra)",
 };
 
 /** Left-to-right diagram of everything linked to `start`. */
@@ -108,7 +110,7 @@ function layout(start: LedgerObject) {
   const edges: { from: string; to: string; rel: string }[] = [];
   for (const o of objs) {
     for (const r of o.out) {
-      if (r.rel === "from-source" || r.rel === "applies-to") continue;
+      if (r.rel === "from-source" || r.rel === "applies-to" || r.rel === "has-tag" || r.rel === "needs-tag" || r.rel === "in-account") continue;
       if (!r.obj) {
         const id = r.key.split("|")[1] ?? r.key;
         if (!nodes.has(r.key)) nodes.set(r.key, { key: r.key, kind: "vro-workflow", name: shortId(id), layer: 0, row: 0 });

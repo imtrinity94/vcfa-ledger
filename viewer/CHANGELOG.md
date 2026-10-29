@@ -2,6 +2,15 @@
 
 Year-based versions (YEAR.MINOR.PATCH), single source in `package.json`.
 
+## 2026.6.0 - 2026-10-29
+
+- New **Infrastructure** tab, laid out like VCFA: Connections > Cloud Accounts; Configure > Cloud Zones, Flavor Mappings, Image Mappings, Network Profiles, Storage Profiles, Tags (needs collector 2026.3.0 or later)
+- Image and flavor mapping lists show one row per mapping name per account / region, as in VCFA
+- Detail pages: cloud accounts (connection properties, regions, everything configured on the account), cloud zones (placement policy, folder, capability tags, compute filter), image / flavor mapping tables with the templates that use them, network profiles with their networks, CIDRs, tags and IP ranges, storage profiles with disk properties, and tags with everything they are on and every template that requires them
+- Tags are clickable everywhere they appear
+- Template solution diagrams now include the image and flavor mappings the template uses
+- Every infrastructure page keeps the full Details list and raw JSON
+
 ## 2026.5.0 - 2026-10-29
 
 - VCF Automation style top tabs: **Home, Consume, Design, Content & Policies, Extensibility, Orchestrator**

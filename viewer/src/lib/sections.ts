@@ -1,6 +1,6 @@
 import type { Kind } from "./ledger";
 
-export type SectionId = "home" | "consume" | "design" | "content" | "extensibility" | "orchestrator";
+export type SectionId = "home" | "consume" | "design" | "infrastructure" | "content" | "extensibility" | "orchestrator";
 
 export type PageId =
   | "catalog"
@@ -15,7 +15,14 @@ export type PageId =
   | "event-topics"
   | "actions"
   | "workflows"
-  | "orch-workflows";
+  | "orch-workflows"
+  | "cloud-accounts"
+  | "cloud-zones"
+  | "flavor-mappings"
+  | "image-mappings"
+  | "network-profiles"
+  | "storage-profiles"
+  | "tags";
 
 export interface NavItem {
   page: PageId;
@@ -48,6 +55,8 @@ const I = {
   library: "M4 4h5v16H4zM11 4h3v16h-3zM16 5l4 1-3 14-4-1z",
   topic: "M12 12h0M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M5.6 5.6a9 9 0 0 0 0 12.8M18.4 5.6a9 9 0 0 1 0 12.8",
   workflow: "M3 3h6v5H3zM15 16h6v5h-6zM6 8v5h12v3",
+  connections: "M8 12h8M5 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM19 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
+  configure: "M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1",
 };
 
 /** Top tabs and their left navigation, modelled on the VCF Automation VM Apps UI. */
@@ -62,6 +71,25 @@ export const SECTIONS: Section[] = [
       { label: "Custom Resources", icon: I.custom, items: [{ page: "custom-resources", label: "Custom Resources", kind: "custom-resource" }] },
       { label: "Custom Actions", icon: I.custom, items: [{ page: "custom-actions", label: "Custom Actions", kind: "resource-action" }] },
       { label: "Property Groups", icon: I.props, items: [{ page: "property-groups", label: "Property Groups", kind: "property-group" }] },
+    ],
+  },
+  {
+    id: "infrastructure",
+    label: "Infrastructure",
+    nav: [
+      { label: "Connections", icon: I.connections, items: [{ page: "cloud-accounts", label: "Cloud Accounts", kind: "cloud-account" }] },
+      {
+        label: "Configure",
+        icon: I.configure,
+        items: [
+          { page: "cloud-zones", label: "Cloud Zones", kind: "cloud-zone" },
+          { page: "flavor-mappings", label: "Flavor Mappings", kind: "flavor-profile" },
+          { page: "image-mappings", label: "Image Mappings", kind: "image-profile" },
+          { page: "network-profiles", label: "Network Profiles", kind: "network-profile" },
+          { page: "storage-profiles", label: "Storage Profiles", kind: "storage-profile" },
+          { page: "tags", label: "Tags", kind: "tag" },
+        ],
+      },
     ],
   },
   {

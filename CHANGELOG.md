@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.3.0 - 2026-10-29
+
+- Infrastructure configuration is now captured: **cloud accounts, cloud zones, image mappings, flavor mappings, network profiles, storage profiles and tags**, under `infrastructure/`
+- Regions are saved as a reference (`infrastructure/regions.json`), and every zone and profile records its cloud account and region by name
+- Network profiles also save the fabric networks they use and those networks' IP ranges (`infrastructure/fabric-networks.json`, `infrastructure/network-ip-ranges.json`)
+- New links: template → image / flavor mapping it uses (`image:` / `flavor:` in the YAML), template → tags in its constraints (`needs-tag`), zone / profile / account → its capability tags (`has-tag`), zone / profile → cloud account (`in-account`)
+- With `-Select`, picking a template also pulls in the image and flavor mappings it uses; tag and account links never pull objects in on their own
+
 ## 2026.2.0 - 2026-10-29
 
 - Catalog item and content source icons are downloaded from `/icon/api/icons/<iconId>` into `icons/`, so the viewer can show the real catalog icons

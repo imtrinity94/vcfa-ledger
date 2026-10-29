@@ -26,6 +26,16 @@ property-groups/<name>.json
 custom-resources/<name>.json       custom resource types
 resource-actions/<name>.json       custom day-2 actions (form definition included)
 icons/<iconId>.png|.svg|.jpg       catalog item and content source icons (once per icon id)
+infrastructure/cloud-accounts/<name>.json
+infrastructure/cloud-zones/<name>.json
+infrastructure/image-mappings/<name>.json     image profiles (one per region, holding the mappings)
+infrastructure/flavor-mappings/<name>.json    flavor profiles (one per region)
+infrastructure/network-profiles/<name>.json
+infrastructure/storage-profiles/<name>.json
+infrastructure/tags/<key_value>.json          one per tag; its id is the tag text, key:value
+infrastructure/regions.json                   all regions (reference, to resolve regionId)
+infrastructure/fabric-networks.json           fabric networks used by exported network profiles
+infrastructure/network-ip-ranges.json         IP ranges on those fabric networks
 ```
 
 Names are the object's display name with characters that are not allowed in file names replaced by `_`. When two objects of the same type share a name, the second gets the first 8 characters of its id appended.
@@ -60,12 +70,12 @@ Each JSON file holds the object exactly as the API returned it, apart from the l
 | Field | Meaning |
 |---|---|
 | `key` | `<type>|<id>`, used by `links` |
-| `type` | `template`, `catalog-item`, `content-source`, `policy`, `subscription`, `abx-action` (action flows included, `meta.actionType` = `FLOW`), `property-group`, `custom-resource`, `resource-action` |
+| `type` | `template`, `catalog-item`, `content-source`, `policy`, `subscription`, `abx-action` (action flows included, `meta.actionType` = `FLOW`), `property-group`, `custom-resource`, `resource-action`, `cloud-account`, `cloud-zone`, `image-profile`, `flavor-profile`, `network-profile`, `storage-profile`, `tag` |
 | `id`, `name`, `project` | as in VCFA (project resolved to its name) |
 | `selectedBy` | `user`, or `dependency` when it was pulled in by a link |
 | `path` | main file of the object |
 | `files` | every file written for the object |
-| `meta` | quick-view fields so the viewer can draw cards without opening each file, e.g. `icon` (package path of the icon) for catalog items and content sources; for subscriptions: `eventTopicId`, `blocking`, `priority`, `timeout`, `criteria`, `runnableType`, `runnableId`, `projects` |
+| `meta` | quick-view fields so the viewer can draw cards without opening each file, e.g. `icon` (package path of the icon) for catalog items and content sources; for zones and profiles: `cloudAccountName`, `regionName`, `tags` (and `mappings` for image / flavor profiles, `fabricNetworkIds` for network profiles); for subscriptions: `eventTopicId`, `blocking`, `priority`, `timeout`, `criteria`, `runnableType`, `runnableId`, `projects` |
 
 ### links[]
 
@@ -82,6 +92,11 @@ Each JSON file holds the object exactly as the API returned it, apart from the l
 | `uses-template` | anything → template (id found in its definition) |
 | `runs` | subscription / resource action / custom resource / action flow → ABX action or `vro-workflow|<id>` |
 | `recovers-with` | subscription → recover workflow |
+| `uses-image-mapping` | template → image profile that defines an `image:` name it uses |
+| `uses-flavor-mapping` | template → flavor profile that defines a `flavor:` name it uses |
+| `needs-tag` | template → tag named in a constraint |
+| `has-tag` | cloud account / zone / network or storage profile → its capability tags |
+| `in-account` | zone / profile → its cloud account |
 | `applies-to` | policy (or anything else) → content source or catalog item named in its definition, e.g. a content sharing policy → the source it shares |
 
 `vro-workflow|<id>` targets are external: the workflow lives in the vRO package, and the viewer can match it when both are loaded.

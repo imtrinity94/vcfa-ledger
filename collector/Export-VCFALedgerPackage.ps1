@@ -51,7 +51,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $ToolName    = 'VCFA Ledger Collector'
-$ToolVersion = '2026.2.0'
+$ToolVersion = '2026.3.0'
 $FormatVersion = '1.0'
 
 # =====================================================================================
@@ -464,6 +464,53 @@ $abxActions    = Get-Section 'ABX actions'         '/abx/api/resources/actions'
 $propGroups    = Get-Section 'Property groups'     '/properties/api/property-groups'
 $customTypes   = Get-Section 'Custom resources'    '/form-service/api/custom/resource-types'
 $resActions    = Get-Section 'Resource actions'    '/form-service/api/custom/resource-actions'
+$cloudAccounts = Get-Section 'Cloud accounts'      '/iaas/api/cloud-accounts'
+$regions       = Get-Section 'Regions'             '/iaas/api/regions'
+$zones         = Get-Section 'Cloud zones'         '/iaas/api/zones'
+$imageProfiles = Get-Section 'Image mappings'      '/iaas/api/image-profiles'
+$flavorProfiles= Get-Section 'Flavor mappings'     '/iaas/api/flavor-profiles'
+$netProfiles   = Get-Section 'Network profiles'    '/iaas/api/network-profiles'
+$storProfiles  = Get-Section 'Storage profiles'    '/iaas/api/storage-profiles'
+$tagsRaw       = Get-Section 'Tags'                '/iaas/api/tags'
+$fabricNets    = @()
+$ipRanges      = @()
+if ($netProfiles.Count -gt 0) {
+    $fabricNets = Get-Section 'Fabric networks'     '/iaas/api/fabric-networks'
+    $ipRanges   = Get-Section 'Network IP ranges'   '/iaas/api/network-ip-ranges'
+}
+
+# Regions and accounts by id, so infrastructure objects can be shown as "account / region"
+$acctById = @{}
+foreach ($a in $cloudAccounts) { if ($a.id) { $acctById["$($a.id)"] = $a } }
+$regionById = @{}
+foreach ($r in $regions) { if ($r.id) { $regionById["$($r.id)"] = $r } }
+function Get-RegionInfo($Obj) {
+    $rid = "$(Get-P $Obj @('regionId'))"
+    if (-not $rid) {
+        $href = "$(Get-P (Get-P (Get-P $Obj @('_links')) @('region')) @('href'))"
+        if ($href -match '/regions/([^/?]+)') { $rid = $Matches[1] }
+    }
+    $r = if ($rid) { $regionById[$rid] } else { $null }
+    $aid = "$(Get-P $r @('cloudAccountId'))"
+    if (-not $aid) { $aid = "$(Get-P $Obj @('cloudAccountId'))" }
+    $a = if ($aid) { $acctById[$aid] } else { $null }
+    return [ordered]@{
+        regionId = $rid; regionName = "$(Get-P $r @('name', 'externalRegionId'))"; externalRegionId = Get-P $r @('externalRegionId')
+        cloudAccountId = $aid; cloudAccountName = "$(Get-P $a @('name'))"; cloudAccountType = Get-P $a @('cloudAccountType')
+    }
+}
+function Get-TagNames($Obj) {
+    @(@(Get-P $Obj @('tags')) | Where-Object { $_ } | ForEach-Object {
+        $k = "$(Get-P $_ @('key'))"; $v = "$(Get-P $_ @('value'))"
+        if ($k) { if ($v) { "${k}:$v" } else { $k } }
+    })
+}
+# Tags: the API has no tag id, so the tag text (key:value) is its id
+$tags = @($tagsRaw | ForEach-Object {
+    $k = "$(Get-P $_ @('key'))"; $v = "$(Get-P $_ @('value'))"
+    $n = if ($v) { "${k}:$v" } else { $k }
+    if ($k) { [pscustomobject]@{ id = $n; name = $n; key = $k; value = $v } }
+})
 
 $projName = @{}
 foreach ($p in $projects) { if ($p.id) { $projName["$($p.id)"] = "$($p.name)" } }
@@ -491,6 +538,13 @@ foreach ($o in $abxActions)  { $t = if ((Get-P $o @('actionType')) -eq 'FLOW') {
 foreach ($o in $propGroups)  { Add-Inv 'Property groups'   'property-group'  $o "$(Get-P $o @('type'))" }
 foreach ($o in $customTypes) { Add-Inv 'Custom resources'  'custom-resource' $o "$(Get-P $o @('resourceType'))" }
 foreach ($o in $resActions)  { Add-Inv 'Resource actions'  'resource-action' $o "$(Get-P $o @('resourceType'))" }
+foreach ($o in $cloudAccounts)  { Add-Inv 'Cloud accounts'    'cloud-account'   $o "$(Get-P $o @('cloudAccountType'))" }
+foreach ($o in $zones)          { $ri = Get-RegionInfo $o; Add-Inv 'Cloud zones'      'cloud-zone'      $o "$($ri.cloudAccountName) / $($ri.regionName)" }
+foreach ($o in $imageProfiles)  { $ri = Get-RegionInfo $o; Add-Inv 'Image mappings'   'image-profile'   $o "$($ri.cloudAccountName) / $($ri.regionName)" }
+foreach ($o in $flavorProfiles) { $ri = Get-RegionInfo $o; Add-Inv 'Flavor mappings'  'flavor-profile'  $o "$($ri.cloudAccountName) / $($ri.regionName)" }
+foreach ($o in $netProfiles)    { $ri = Get-RegionInfo $o; Add-Inv 'Network profiles' 'network-profile' $o "$($ri.cloudAccountName) / $($ri.regionName)" }
+foreach ($o in $storProfiles)   { $ri = Get-RegionInfo $o; Add-Inv 'Storage profiles' 'storage-profile' $o "$($ri.cloudAccountName) / $($ri.regionName)" }
+foreach ($o in $tags)           { Add-Inv 'Tags'             'tag'             $o '' }
 
 # =====================================================================================
 #  2. Selection + dependency resolution
@@ -526,6 +580,17 @@ $pgByName = @{}
 foreach ($i in ($inventory | Where-Object Kind -eq 'property-group')) { $pgByName[$i.Name] = $i }
 $crByType = @{}
 foreach ($i in ($inventory | Where-Object Kind -eq 'custom-resource')) { $t = Get-P $i.Obj @('resourceType'); if ($t) { $crByType["$t"] = $i } }
+# mapping name -> profiles that define it (one profile per region)
+function Get-MappingNames($Obj, [string]$Prop) {
+    $m = Get-P (Get-P $Obj @($Prop)) @('mapping')
+    if ($m) { return @($m.PSObject.Properties | ForEach-Object { $_.Name }) }
+    return @()
+}
+$imgByName = @{}; $flvByName = @{}
+foreach ($i in ($inventory | Where-Object Kind -eq 'image-profile')) { foreach ($n in (Get-MappingNames $i.Obj 'imageMappings')) { if (-not $imgByName.ContainsKey($n)) { $imgByName[$n] = @() }; $imgByName[$n] += $i } }
+foreach ($i in ($inventory | Where-Object Kind -eq 'flavor-profile')) { foreach ($n in (Get-MappingNames $i.Obj 'flavorMappings')) { if (-not $flvByName.ContainsKey($n)) { $flvByName[$n] = @() }; $flvByName[$n] += $i } }
+$tagByName = @{}
+foreach ($i in ($inventory | Where-Object Kind -eq 'tag')) { $tagByName[$i.Name] = $i }
 
 function Resolve-Links($Inv, [string]$Text) {
     foreach ($t in $idTargets) {
@@ -541,6 +606,32 @@ function Resolve-Links($Inv, [string]$Text) {
     foreach ($m in [regex]::Matches($Text, '(Custom\.[A-Za-z0-9_\.\-]+)')) {
         $n = $m.Groups[1].Value.TrimEnd('.')
         if ($crByType.ContainsKey($n) -and $crByType[$n].Key -ne $Inv.Key) { Add-Link $Inv.Key $crByType[$n].Key 'uses-custom-resource' }
+    }
+    if ($Inv.Kind -eq 'template') {
+        foreach ($m in [regex]::Matches($Text, '(?m)^\s*image:\s*[''"]?([^''"\s#]+)')) {
+            $n = $m.Groups[1].Value
+            if ($imgByName.ContainsKey($n)) { foreach ($t in $imgByName[$n]) { Add-Link $Inv.Key $t.Key 'uses-image-mapping' } }
+        }
+        foreach ($m in [regex]::Matches($Text, '(?m)^\s*flavor:\s*[''"]?([^''"\s#]+)')) {
+            $n = $m.Groups[1].Value
+            if ($flvByName.ContainsKey($n)) { foreach ($t in $flvByName[$n]) { Add-Link $Inv.Key $t.Key 'uses-flavor-mapping' } }
+        }
+        # tag constraints, e.g.  - tag: 'env:dev'
+        foreach ($m in [regex]::Matches($Text, 'tag:\s*[''"]?!?([^''"\s,}\]#]+)')) {
+            $n = $m.Groups[1].Value -replace ':(hard|soft)$', ''
+            if ($tagByName.ContainsKey($n)) { Add-Link $Inv.Key $tagByName[$n].Key 'needs-tag' }
+        }
+    }
+}
+
+# Infrastructure: account, tags
+foreach ($i in $inventory) {
+    if ($i.Kind -in @('cloud-zone', 'image-profile', 'flavor-profile', 'network-profile', 'storage-profile')) {
+        $ri = Get-RegionInfo $i.Obj
+        if ($ri.cloudAccountId -and $byKey.ContainsKey("cloud-account|$($ri.cloudAccountId)")) { Add-Link $i.Key "cloud-account|$($ri.cloudAccountId)" 'in-account' }
+    }
+    if ($i.Kind -in @('cloud-account', 'cloud-zone', 'network-profile', 'storage-profile')) {
+        foreach ($tn in (Get-TagNames $i.Obj)) { if ($tagByName.ContainsKey($tn)) { Add-Link $i.Key $tagByName[$tn].Key 'has-tag' } }
     }
 }
 
@@ -575,7 +666,7 @@ function Expand-Selection {
     while ($changed) {
         $changed = $false
         foreach ($l in $links.ToArray()) {
-            if ($selected.ContainsKey($l.from) -and -not $selected.ContainsKey($l.to) -and $l.rel -ne 'from-source' -and $l.rel -ne 'applies-to') {
+            if ($selected.ContainsKey($l.from) -and -not $selected.ContainsKey($l.to) -and $l.rel -notin @('from-source', 'applies-to', 'has-tag', 'needs-tag', 'in-account')) {
                 $selected[$l.to] = $true; $changed = $true
             }
         }
@@ -659,6 +750,7 @@ $script:PkgDir = Join-Path $orgDir $name
 Write-Step "Writing package $name"
 $objects = New-Object System.Collections.Generic.List[object]
 $pathByKey = @{}
+$script:UsedFabricNets = @{}
 
 $abxExt = @{ python = '.py'; nodejs = '.js'; powershell = '.ps1' }
 $runtimeKeyFn = { param($r) $x = "$r".ToLowerInvariant(); foreach ($k in $abxExt.Keys) { if ($x.StartsWith($k)) { return $k } }; return $null }
@@ -754,6 +846,31 @@ foreach ($i in @($inventory | Where-Object { $selected.ContainsKey($_.Key) })) {
             Save-Json $mainPath $d; $files.Add($mainPath)
             $meta.resourceType = Get-P $d @('resourceType')
         }
+        { $_ -in @('cloud-account', 'cloud-zone', 'image-profile', 'flavor-profile', 'network-profile', 'storage-profile', 'tag') } {
+            $folder = switch ($i.Kind) {
+                'cloud-account' { 'infrastructure/cloud-accounts' } 'cloud-zone' { 'infrastructure/cloud-zones' }
+                'image-profile' { 'infrastructure/image-mappings' } 'flavor-profile' { 'infrastructure/flavor-mappings' }
+                'network-profile' { 'infrastructure/network-profiles' } 'storage-profile' { 'infrastructure/storage-profiles' }
+                'tag' { 'infrastructure/tags' }
+            }
+            $mainPath = Get-ObjPath $folder $i.Name $i.Id '.json'
+            Save-Json $mainPath $d; $files.Add($mainPath)
+            if ($i.Kind -ne 'cloud-account' -and $i.Kind -ne 'tag') { foreach ($kv in (Get-RegionInfo $d).GetEnumerator()) { $meta[$kv.Key] = $kv.Value } }
+            if ($i.Kind -eq 'cloud-account') {
+                $meta.cloudAccountType = Get-P $d @('cloudAccountType')
+                $meta.regions = @(@(Get-P $d @('enabledRegionIds')) | ForEach-Object { $r = $regionById["$_"]; if ($r) { "$(Get-P $r @('name', 'externalRegionId'))" } else { "$_" } } | Where-Object { $_ })
+                if (-not $meta.regions.Count) { $meta.regions = @($regions | Where-Object { "$($_.cloudAccountId)" -eq $i.Id } | ForEach-Object { "$(Get-P $_ @('name', 'externalRegionId'))" }) }
+            }
+            if ($i.Kind -eq 'image-profile') { $meta.mappings = @(Get-MappingNames $d 'imageMappings') }
+            if ($i.Kind -eq 'flavor-profile') { $meta.mappings = @(Get-MappingNames $d 'flavorMappings') }
+            if ($i.Kind -ne 'tag') { $meta.tags = @(Get-TagNames $d) }
+            if ($i.Kind -eq 'tag') { $meta.key = Get-P $d @('key'); $meta.value = Get-P $d @('value') }
+            if ($i.Kind -eq 'network-profile') {
+                $ids = @(@(Get-P (Get-P (Get-P $d @('_links')) @('fabric-networks')) @('hrefs')) | ForEach-Object { if ("$_" -match '/([^/]+)$') { $Matches[1] } })
+                $meta.fabricNetworkIds = $ids
+                foreach ($fid in $ids) { $script:UsedFabricNets["$fid"] = $true }
+            }
+        }
         'resource-action' {
             $mainPath = Get-ObjPath 'resource-actions' $i.Name $i.Id '.json'
             Save-Json $mainPath $d; $files.Add($mainPath)
@@ -780,6 +897,18 @@ foreach ($t in $topics) {
         Save-Json $p $t
         $topicFiles.Add([ordered]@{ id = $tid; name = Get-P $t @('name'); blockable = Get-P $t @('blockable'); path = $p })
     }
+}
+
+# Infrastructure references: regions, and the fabric networks / IP ranges behind exported network profiles
+if ($regions.Count) { Save-Json 'infrastructure/regions.json' @($regions) }
+if ($script:UsedFabricNets.Count) {
+    Save-Json 'infrastructure/fabric-networks.json' @($fabricNets | Where-Object { $script:UsedFabricNets.ContainsKey("$($_.id)") })
+    $usedRanges = @($ipRanges | Where-Object {
+        $fid = "$(Get-P $_ @('fabricNetworkId'))"
+        if (-not $fid) { $h = "$(Get-P (Get-P (Get-P $_ @('_links')) @('fabric-network')) @('href'))"; if ($h -match '/([^/]+)$') { $fid = $Matches[1] } }
+        $fid -and $script:UsedFabricNets.ContainsKey($fid)
+    })
+    Save-Json 'infrastructure/network-ip-ranges.json' $usedRanges
 }
 
 # Projects (reference)

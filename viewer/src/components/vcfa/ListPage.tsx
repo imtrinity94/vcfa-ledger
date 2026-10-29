@@ -37,7 +37,61 @@ const statusChip = (s: string) => (s ? <span className={`vl-status ${/released|o
 const updated = (j: J) => fmt(j.updatedAt ?? j.lastUpdatedAt ?? j.createdAt);
 const updatedBy = (j: J) => str(j.updatedBy ?? j.lastUpdatedBy ?? j.createdBy);
 
+const acctRegion = (o: LedgerObject) => [str(o.meta.cloudAccountName), str(o.meta.regionName)].filter(Boolean).join(" / ");
+const tagList = (o: LedgerObject) => ((o.meta.tags as string[] | undefined) ?? []).join(", ");
+const tagChips = (o: LedgerObject) => {
+  const t = (o.meta.tags as string[] | undefined) ?? [];
+  return t.length ? (
+    <span className="vx-tags">
+      {t.map((x) => (
+        <span key={x} className="vx-tag">
+          {x}
+        </span>
+      ))}
+    </span>
+  ) : null;
+};
+const ACCOUNT_TYPES: Record<string, string> = { vsphere: "vCenter", nsxt: "NSX", nsxv: "NSX-V", vmc: "VMware Cloud on AWS", aws: "AWS", azure: "Azure", gcp: "GCP", vcf: "VCF" };
+
 const COLS: Partial<Record<Kind, Col[]>> = {
+  "cloud-account": [
+    { label: "Name", get: (o) => o.name },
+    { label: "Type", get: (_o, j) => ACCOUNT_TYPES[str(j.cloudAccountType)] ?? str(j.cloudAccountType) },
+    { label: "Address", get: (_o, j) => str((j.cloudAccountProperties as J)?.hostName ?? (j.cloudAccountProperties as J)?.hostname) },
+    { label: "Regions", get: (o) => ((o.meta.regions as string[] | undefined) ?? []).join(", ") },
+    { label: "Capability Tags", get: (o) => tagList(o), render: (o) => tagChips(o) },
+    { label: "Description", get: (_o, j) => str(j.description) },
+  ],
+  "cloud-zone": [
+    { label: "Name", get: (o) => o.name },
+    { label: "Account / Region", get: (o) => acctRegion(o) },
+    { label: "Placement Policy", get: (_o, j) => str(j.placementPolicy) },
+    { label: "Capability Tags", get: (o) => tagList(o), render: (o) => tagChips(o) },
+    { label: "Compute Filter", get: (_o, j) => ((j.tagsToMatch as J[] | undefined) ?? []).map((t) => (t.value ? `${str(t.key)}:${str(t.value)}` : str(t.key))).join(", ") },
+    { label: "Description", get: (_o, j) => str(j.description) },
+  ],
+  "network-profile": [
+    { label: "Name", get: (o) => o.name },
+    { label: "Account / Region", get: (o) => acctRegion(o) },
+    { label: "Networks", get: (o) => String(((o.meta.fabricNetworkIds as string[] | undefined) ?? []).length) },
+    { label: "Isolation", get: (_o, j) => str(j.isolationType) },
+    { label: "Capability Tags", get: (o) => tagList(o), render: (o) => tagChips(o) },
+    { label: "Description", get: (_o, j) => str(j.description) },
+  ],
+  "storage-profile": [
+    { label: "Name", get: (o) => o.name },
+    { label: "Account / Region", get: (o) => acctRegion(o) },
+    { label: "Default", get: (_o, j) => (j.defaultItem ? "Yes" : "No") },
+    { label: "Disk Properties", get: (_o, j) => Object.entries((j.diskProperties as J) ?? {}).map(([k, v]) => `${k}: ${str(v)}`).join(", ") },
+    { label: "Capability Tags", get: (o) => tagList(o), render: (o) => tagChips(o) },
+  ],
+  tag: [
+    { label: "Tag", get: (o) => o.name },
+    { label: "Key", get: (o) => str(o.meta.key) },
+    { label: "Value", get: (o) => str(o.meta.value) },
+    { label: "Tagged On", get: (o) => String(o.in.filter((r) => r.rel === "has-tag").length) },
+    { label: "Required By", get: (o) => String(o.in.filter((r) => r.rel === "needs-tag").length) },
+  ],
   template: [
     { label: "Name", get: (o) => o.name },
     { label: "Status", get: (_o, j) => (j.status === "RELEASED" ? "Released" : j.status === "VERSIONED" ? "Versioned" : j.status ? "Draft" : ""), render: (_o, j) => statusChip(j.status === "RELEASED" ? "Released" : j.status === "VERSIONED" ? "Versioned" : j.status ? "Draft" : "") },
@@ -327,8 +381,52 @@ function VroWorkflows({ ledger, onNav, title }: { ledger: Ledger; onNav: (k: str
   );
 }
 
+/** Image / flavor mappings: one row per mapping name per region, like VCFA. */
+function MappingList({ kind, title, ledger, onNav }: { kind: "image-profile" | "flavor-profile"; title: string; ledger: Ledger; onNav: (k: string) => void }) {
+  const [q, setQ] = useState("");
+  const prop = kind === "image-profile" ? "imageMappings" : "flavorMappings";
+  const rows = useMemo(() => {
+    const out: { key: string; o: LedgerObject; name: string; value: string; detail: string }[] = [];
+    for (const o of ledger.objects.filter((x) => x.type === kind)) {
+      const j = (readJson(ledger, o.path) ?? {}) as J;
+      const mapping = (((j[prop] as J)?.mapping as Record<string, J>) ?? {}) as Record<string, J>;
+      for (const [name, m] of Object.entries(mapping)) {
+        const value =
+          kind === "image-profile"
+            ? str(m.name ?? m.externalId ?? m.id)
+            : m.cpuCount !== undefined
+              ? `${str(m.cpuCount)} vCPU, ${m.memoryInMB !== undefined ? `${Math.round(Number(m.memoryInMB) / 1024 * 10) / 10} GB` : "?"} memory`
+              : str(m.name ?? m.id);
+        const detail = kind === "image-profile" ? [str(m.osFamily), m.cloudConfig ? "cloud config" : "", (m.constraints as J[] | undefined)?.length ? "constraints" : ""].filter(Boolean).join(" · ") : str(m.name ?? "");
+        out.push({ key: `${o.key}|${name}`, o, name, value, detail });
+      }
+    }
+    const s = q.trim().toLowerCase();
+    return out
+      .filter((r) => !s || r.name.toLowerCase().includes(s) || r.value.toLowerCase().includes(s) || acctRegion(r.o).toLowerCase().includes(s))
+      .sort((a, b) => a.name.localeCompare(b.name) || acctRegion(a.o).localeCompare(acctRegion(b.o)));
+  }, [ledger, kind, prop, q]);
+  const names = new Set(rows.map((r) => r.name));
+  return (
+    <div className="vl">
+      <Head title={title} count={names.size} q={q} setQ={setQ} />
+      <Grid
+        cols={[{ label: kind === "image-profile" ? "Image Mapping" : "Flavor Mapping" }, { label: "Account / Region" }, { label: kind === "image-profile" ? "Image" : "Value" }, { label: kind === "image-profile" ? "Details" : "Instance Type" }, { label: "Profile" }]}
+        rows={rows.map((r) => ({
+          key: r.key,
+          onClick: () => onNav(r.o.key),
+          cells: [<span key="n" className="vl-name">{r.name}</span>, acctRegion(r.o), r.value, r.detail, r.o.name],
+        }))}
+        empty={`This export has no ${title.toLowerCase()}.`}
+      />
+    </div>
+  );
+}
+
 export function ListPage({ page, ledger, onNav }: { page: PageId; ledger: Ledger; onNav: (k: string) => void }) {
   const { item } = pageInfo(page);
+  if (page === "image-mappings") return <MappingList kind="image-profile" title="Image Mappings" ledger={ledger} onNav={onNav} />;
+  if (page === "flavor-mappings") return <MappingList kind="flavor-profile" title="Flavor Mappings" ledger={ledger} onNav={onNav} />;
   if (page === "event-topics") return <EventTopics ledger={ledger} onNav={onNav} />;
   if (page === "workflows" || page === "orch-workflows") return <VroWorkflows ledger={ledger} onNav={onNav} title="Workflows" />;
   if (!item.kind) return null;

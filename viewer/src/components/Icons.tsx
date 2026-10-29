@@ -21,6 +21,20 @@ const paths: Record<IconKind, string> = {
   "custom-resource": "M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4M12 11v10",
   // cursor click
   "resource-action": "M9 9l11 4-5 2-2 5zM4 4l2 2M9 3v3M3 9h3",
+  // cloud
+  "cloud-account": "M7 18h10a4 4 0 0 0 .6-7.96A6 6 0 0 0 6.1 9.2 4.5 4.5 0 0 0 7 18z",
+  // map pin area
+  "cloud-zone": "M4 6l5-2 6 2 5-2v14l-5 2-6-2-5 2zM9 4v14M15 6v14",
+  // picture
+  "image-profile": "M4 5h16v14H4zM8 10a1.5 1.5 0 1 0 0-.01M20 16l-5-5-8 8",
+  // cpu chip
+  "flavor-profile": "M7 7h10v10H7zM10 3v4M14 3v4M10 17v4M14 17v4M3 10h4M3 14h4M17 10h4M17 14h4",
+  // network
+  "network-profile": "M12 3v6M5 21v-4h14v4M12 9a3 3 0 1 0 0 .01M12 12v5M5 17h14",
+  // cylinder
+  "storage-profile": "M5 6c0-1.7 3.1-3 7-3s7 1.3 7 3-3.1 3-7 3-7-1.3-7-3zM5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3",
+  // tag
+  tag: "M3 12V4h8l10 10-8 8zM7.5 7.5h0",
   // flow chart (vRO)
   "vro-workflow": "M3 3h6v5H3zM15 16h6v5h-6zM6 8v5h12v3",
   // broadcast

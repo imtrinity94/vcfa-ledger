@@ -9,7 +9,14 @@ export type Kind =
   | "abx-action"
   | "property-group"
   | "custom-resource"
-  | "resource-action";
+  | "resource-action"
+  | "cloud-account"
+  | "cloud-zone"
+  | "image-profile"
+  | "flavor-profile"
+  | "network-profile"
+  | "storage-profile"
+  | "tag";
 
 export const KINDS: { kind: Kind; label: string; single: string }[] = [
   { kind: "template", label: "Cloud Templates", single: "Cloud Template" },
@@ -21,6 +28,13 @@ export const KINDS: { kind: Kind; label: string; single: string }[] = [
   { kind: "property-group", label: "Property Groups", single: "Property Group" },
   { kind: "custom-resource", label: "Custom Resources", single: "Custom Resource" },
   { kind: "resource-action", label: "Resource Actions", single: "Resource Action" },
+  { kind: "cloud-account", label: "Cloud Accounts", single: "Cloud Account" },
+  { kind: "cloud-zone", label: "Cloud Zones", single: "Cloud Zone" },
+  { kind: "image-profile", label: "Image Mappings", single: "Image Mapping" },
+  { kind: "flavor-profile", label: "Flavor Mappings", single: "Flavor Mapping" },
+  { kind: "network-profile", label: "Network Profiles", single: "Network Profile" },
+  { kind: "storage-profile", label: "Storage Profiles", single: "Storage Profile" },
+  { kind: "tag", label: "Tags", single: "Tag" },
 ];
 
 export const kindLabel = (k: string) => KINDS.find((x) => x.kind === k)?.single ?? k;
@@ -83,6 +97,8 @@ export interface Ledger {
   images: Map<string, string>;
   topics: Map<string, Record<string, unknown>>;
   projects: { id: string; name: string; description?: string }[];
+  /** infrastructure reference data (regions, fabric networks and IP ranges behind network profiles) */
+  infra: { regions: Record<string, unknown>[]; fabricNetworks: Record<string, unknown>[]; ipRanges: Record<string, unknown>[] };
 }
 
 const POLICY_TYPES: Record<string, string> = {
@@ -177,7 +193,12 @@ export async function parseLedger(buf: ArrayBuffer, fileName: string): Promise<L
       topics.set(t.id, { id: t.id, name: t.name });
     }
   }
-  return { fileName, manifest, objects, byKey, files, images, topics, projects };
+  const arr = (path: string) => {
+    const j = fileJson(path) as unknown;
+    return Array.isArray(j) ? (j as Record<string, unknown>[]) : j ? [j as Record<string, unknown>] : [];
+  };
+  const infra = { regions: arr("infrastructure/regions.json"), fabricNetworks: arr("infrastructure/fabric-networks.json"), ipRanges: arr("infrastructure/network-ip-ranges.json") };
+  return { fileName, manifest, objects, byKey, files, images, topics, projects, infra };
 }
 
 function stripBom(s: string) {
@@ -214,6 +235,11 @@ export const REL_LABEL: Record<string, [string, string]> = {
   runs: ["Runs", "Run by"],
   "recovers-with": ["Recovers with", "Recover runnable of"],
   "applies-to": ["Applies to", "Policies that apply"],
+  "uses-image-mapping": ["Uses image mapping", "Used by template"],
+  "uses-flavor-mapping": ["Uses flavor mapping", "Used by template"],
+  "needs-tag": ["Constrained to tag", "Required by template"],
+  "has-tag": ["Tagged", "Tagged on"],
+  "in-account": ["In cloud account", "Contains"],
 };
 
 export function relLabel(rel: string, dir: "out" | "in") {
@@ -228,7 +254,7 @@ export function component(start: LedgerObject): LedgerObject[] {
   for (let i = 0; i < out.length; i++) {
     for (const r of [...out[i].out, ...out[i].in]) {
       // content sources and the policies on them tie everything together; don't walk through them
-      if (r.rel === "from-source" || r.rel === "applies-to") continue;
+      if (r.rel === "from-source" || r.rel === "applies-to" || r.rel === "has-tag" || r.rel === "needs-tag" || r.rel === "in-account") continue;
       if (r.obj && !seen.has(r.obj.key)) {
         seen.add(r.obj.key);
         out.push(r.obj);

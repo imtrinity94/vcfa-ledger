@@ -5,7 +5,8 @@ import { ChainDiagram } from "./ChainDiagram";
 import { ContentSharingPolicy } from "./vcfa/ContentSharingPolicy";
 import { ItemIcon } from "./vcfa/Catalog";
 import { RequestForm } from "./vcfa/RequestForm";
-import { kindLabel, langFor, policyTypeLabel, readJson, relLabel, shortId, type Ledger, type LedgerObject, type Ref } from "../lib/ledger";
+import { InfraView } from "./vcfa/Infra";
+import { component, kindLabel, langFor, policyTypeLabel, readJson, relLabel, shortId, type Ledger, type LedgerObject, type Ref } from "../lib/ledger";
 
 type J = Record<string, unknown>;
 
@@ -448,6 +449,22 @@ export function ObjectView({ o, ledger, onNav }: { o: LedgerObject; ledger: Ledg
     case "property-group":
       body = <PropertyGroupView o={o} l={ledger} />;
       break;
+    case "cloud-account":
+    case "cloud-zone":
+    case "image-profile":
+    case "flavor-profile":
+    case "network-profile":
+    case "storage-profile":
+    case "tag":
+      body = (
+        <>
+          <InfraView o={o} ledger={ledger} onNav={onNav} />
+          <Card title="Details">
+            <Props obj={main} skip={["orgId"]} />
+          </Card>
+        </>
+      );
+      break;
     default:
       body = (
         <Card title="Details">
@@ -472,7 +489,7 @@ export function ObjectView({ o, ledger, onNav }: { o: LedgerObject; ledger: Ledg
         {desc && o.type !== "property-group" && o.type !== "catalog-item" && <p className="el-desc">{desc}</p>}
       </div>
 
-      {(o.out.length > 0 || o.in.length > 0) && (
+      {(component(o).length > 1 || o.out.some((r) => !r.obj)) && (
         <Card title="Solution" extra={<span className="muted small">everything linked to this {kindLabel(o.type).toLowerCase()}</span>}>
           <ChainDiagram start={o} onNav={onNav} />
         </Card>

@@ -1,6 +1,6 @@
 # VCFA Ledger
 
-Capture, track and view everything you customise in a **VCF Automation 9.x VM Apps** organization: cloud templates, catalog, custom forms, policies, subscriptions, ABX actions, property groups and custom resources.
+Capture, track and view everything you customise in a **VCF Automation 9.x VM Apps** organization: cloud templates, catalog, custom forms, policies, subscriptions, ABX actions, property groups and custom resources, plus the infrastructure configuration behind them (cloud accounts, cloud zones, image and flavor mappings, network and storage profiles, tags).
 
 Think of it as the "vRO package" for the VCF Automation side of a solution. A static IP solution, for example, touches a template, a property group, a subscription (topic + condition) and a workflow. VCFA Ledger captures the VCFA half into one package, and records the links between the pieces.
 
@@ -8,8 +8,8 @@ The project has two parts:
 
 | Part | Status | What it does |
 |---|---|---|
-| `collector/Export-VCFALedgerPackage.ps1` | 2026.2.0 | PowerShell 5.1 script. Logs into one VM Apps org and writes a `.vcfapkg` package (read-only, GET calls only). |
-| `viewer/` | 2026.5.0 | Web app that opens a `.vcfapkg` in the browser, laid out like the VCF Automation UI (tabs, left nav, list pages, catalog, request forms, policy pages), read-only. |
+| `collector/Export-VCFALedgerPackage.ps1` | 2026.3.0 | PowerShell 5.1 script. Logs into one VM Apps org and writes a `.vcfapkg` package (read-only, GET calls only). |
+| `viewer/` | 2026.6.0 | Web app that opens a `.vcfapkg` in the browser, laid out like the VCF Automation UI (tabs, left nav, list pages, catalog, request forms, policy pages), read-only. |
 
 ## Collector
 
@@ -63,6 +63,7 @@ When you use `-Select`, these are added for you:
 - template → property groups (`propertyGroups.<name>`) and custom resource types (`Custom.*`) it uses
 - subscription, resource action, custom resource → the ABX action it runs
 - ABX action flow → the actions inside it
+- template → the image and flavor mappings it uses
 
 vRO workflows are recorded as links (`vro-workflow|<id>`) but not exported; they belong in the vRO package.
 
