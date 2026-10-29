@@ -2,6 +2,14 @@
 
 Year-based versions (YEAR.MINOR.PATCH), single source in `package.json`.
 
+## 2026.4.0 - 2026-10-29
+
+- Catalog items now open with a live **New Request** preview laid out like VCF Automation: project, deployment name and every input, in a page you can click through and type into. Nothing is ever submitted
+- Built from the custom form when the item has one: pages as tabs, labels, required markers, signposts, defaults, static value lists, read-only fields, data grids (add / remove rows) and visibility rules, which update live as you change values
+- Without a custom form it is built from the item's request schema (types, enums, min / max, defaults)
+- Nothing is lost: values or defaults that come from a vRO action or a binding show which action feeds them; conditional and read-only fields are tagged; each signpost also lists the field id, type, pattern and limits; fields hidden by a rule are listed under the form; and "Request inputs as they would be sent" shows the current values as JSON
+- The custom form JSON, request inputs table and raw JSON stay on the page below the preview
+
 ## 2026.3.0 - 2026-10-29
 
 - New **Catalog** page (top bar, or the Catalog Items tile) laid out like VCF Automation Service Broker > Consume > Catalog: item count, project filter, search, sort, card and list views, read-only

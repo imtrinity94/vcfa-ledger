@@ -4,6 +4,7 @@ import { KindIcon } from "./Icons";
 import { ChainDiagram } from "./ChainDiagram";
 import { ContentSharingPolicy } from "./vcfa/ContentSharingPolicy";
 import { ItemIcon } from "./vcfa/Catalog";
+import { RequestForm } from "./vcfa/RequestForm";
 import { kindLabel, langFor, policyTypeLabel, readJson, relLabel, shortId, type Ledger, type LedgerObject, type Ref } from "../lib/ledger";
 
 type J = Record<string, unknown>;
@@ -156,8 +157,19 @@ function CatalogView({ o, l }: { o: LedgerObject; l: Ledger }) {
   }
   const schema = item?.schema as { properties?: Record<string, J> } | undefined;
   const props = Object.entries(schema?.properties ?? {});
+  const projects = (o.meta.projects as string[] | undefined)?.length ? (o.meta.projects as string[]) : o.project ? [o.project] : [];
+  const formObj = formDef && typeof formDef === "object" ? (formDef as J) : null;
   return (
     <>
+      <RequestForm
+        key={o.key}
+        itemName={o.name}
+        icon={<ItemIcon o={o} l={l} size={34} />}
+        projects={projects}
+        schema={schema as J | undefined}
+        form={formObj}
+        isTemplate={/blueprint/i.test(s(o.meta.type))}
+      />
       <Card title="Catalog item">
         <div className="vc-item-head">
           <ItemIcon o={o} l={l} size={48} />

@@ -1,6 +1,6 @@
 {
   "name": "vcfa-ledger",
-  "version": "2026.3.0",
+  "version": "2026.4.0",
   "private": true,
   "description": "VCFA Ledger: browse VCF Automation 9.x VM Apps packages (.vcfapkg) in your browser - templates, catalog, policies, subscriptions, ABX",
   "author": "imtrinity94",
