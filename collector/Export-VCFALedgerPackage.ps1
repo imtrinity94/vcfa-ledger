@@ -51,7 +51,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $ToolName    = 'VCFA Ledger Collector'
-$ToolVersion = '2026.1.4'
+$ToolVersion = '2026.2.0'
 $FormatVersion = '1.0'
 
 # =====================================================================================

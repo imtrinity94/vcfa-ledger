@@ -8,7 +8,7 @@ The project has two parts:
 
 | Part | Status | What it does |
 |---|---|---|
-| `collector/Export-VCFALedgerPackage.ps1` | 2026.1.4 | PowerShell 5.1 script. Logs into one VM Apps org and writes a `.vcfapkg` package (read-only, GET calls only). |
+| `collector/Export-VCFALedgerPackage.ps1` | 2026.2.0 | PowerShell 5.1 script. Logs into one VM Apps org and writes a `.vcfapkg` package (read-only, GET calls only). |
 | `viewer/` | 2026.3.0 | Web app that opens a `.vcfapkg` in the browser: object tree, subscription cards, template versions, solution diagrams. Same look as vRO Peekage. |
 
 ## Collector
@@ -84,4 +84,9 @@ See [docs/vcfapkg-format.md](docs/vcfapkg-format.md).
 
 ## Versioning
 
-Year-based: `2026.1.0`. Every change is recorded in [CHANGELOG.md](CHANGELOG.md).
+Year-based `YEAR.MINOR.PATCH`, kept separately for the collector and the viewer:
+
+- **MINOR** goes up with every new feature (and resets each new year)
+- **PATCH** goes up for fixes and small tweaks
+
+Collector changes are in [CHANGELOG.md](CHANGELOG.md), viewer changes in [viewer/CHANGELOG.md](viewer/CHANGELOG.md).

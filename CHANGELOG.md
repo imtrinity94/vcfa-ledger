@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026.1.4 - 2026-10-29
+## 2026.2.0 - 2026-10-29
 
 - Catalog item and content source icons are downloaded from `/icon/api/icons/<iconId>` into `icons/`, so the viewer can show the real catalog icons
 - Catalog items record their type name (`meta.typeName`)
