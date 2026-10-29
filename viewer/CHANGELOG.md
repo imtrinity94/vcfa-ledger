@@ -2,6 +2,11 @@
 
 Year-based versions (YEAR.MINOR.PATCH), single source in `package.json`.
 
+## 2026.2.0 - 2026-10-29
+
+- Content sharing policies now open as a read-only replica of the VCF Automation Service Broker policy page: Type, Name, Description, Scope (Organization / Multiple Projects or Project), Content sharing grid (items shared and their content source), Entitlement type (User / Role based) and Users
+- Shared items in the grid link to the content source or catalog item in the package
+
 ## 2026.1.0 - 2026-10-29
 
 First version.

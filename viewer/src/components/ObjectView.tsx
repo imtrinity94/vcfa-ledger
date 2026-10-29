@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { CodeBlock } from "./CodeBlock";
 import { KindIcon } from "./Icons";
 import { ChainDiagram } from "./ChainDiagram";
+import { ContentSharingPolicy } from "./vcfa/ContentSharingPolicy";
 import { kindLabel, langFor, policyTypeLabel, readJson, relLabel, shortId, type Ledger, type LedgerObject, type Ref } from "../lib/ledger";
 
 type J = Record<string, unknown>;
@@ -211,8 +212,9 @@ function InputsTable({ props }: { props: [string, J][] }) {
   );
 }
 
-function PolicyView({ o, l }: { o: LedgerObject; l: Ledger }) {
+function PolicyView({ o, l, onNav }: { o: LedgerObject; l: Ledger; onNav: (k: string) => void }) {
   const p = readJson(l, o.path);
+  if (p && p.typeId === "com.vmware.policy.catalog.entitlement") return <ContentSharingPolicy policy={p} o={o} ledger={l} onNav={onNav} />;
   return (
     <>
       <Card title="Policy">
@@ -418,7 +420,7 @@ export function ObjectView({ o, ledger, onNav }: { o: LedgerObject; ledger: Ledg
       body = <CatalogView o={o} l={ledger} />;
       break;
     case "policy":
-      body = <PolicyView o={o} l={ledger} />;
+      body = <PolicyView o={o} l={ledger} onNav={onNav} />;
       break;
     case "subscription":
       body = <SubscriptionView o={o} l={ledger} onNav={onNav} />;
