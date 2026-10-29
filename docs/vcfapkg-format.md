@@ -21,7 +21,7 @@ subscriptions/<name>.json          extensibility subscriptions
 event-topics/<id>.json             only the topics the exported subscriptions use
 abx/<name>/action.json             ABX action metadata (without source)
 abx/<name>/source.py|.js|.ps1      ABX source code
-abx-flows/<name>.json              ABX action flows
+abx/<name>/source.yaml             flow definition, for action flows (actionType FLOW)
 property-groups/<name>.json
 custom-resources/<name>.json       custom resource types
 resource-actions/<name>.json       custom day-2 actions (form definition included)
@@ -59,7 +59,7 @@ Each JSON file holds the object exactly as the API returned it, apart from the l
 | Field | Meaning |
 |---|---|
 | `key` | `<type>|<id>`, used by `links` |
-| `type` | `template`, `catalog-item`, `content-source`, `policy`, `subscription`, `abx-action`, `abx-flow`, `property-group`, `custom-resource`, `resource-action` |
+| `type` | `template`, `catalog-item`, `content-source`, `policy`, `subscription`, `abx-action` (action flows included, `meta.actionType` = `FLOW`), `property-group`, `custom-resource`, `resource-action` |
 | `id`, `name`, `project` | as in VCFA (project resolved to its name) |
 | `selectedBy` | `user`, or `dependency` when it was pulled in by a link |
 | `path` | main file of the object |

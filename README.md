@@ -8,7 +8,7 @@ The project has two parts:
 
 | Part | Status | What it does |
 |---|---|---|
-| `collector/Export-VCFALedgerPackage.ps1` | 2026.1.1 | PowerShell 5.1 script. Logs into one VM Apps org and writes a `.vcfapkg` package (read-only, GET calls only). |
+| `collector/Export-VCFALedgerPackage.ps1` | 2026.1.2 | PowerShell 5.1 script. Logs into one VM Apps org and writes a `.vcfapkg` package (read-only, GET calls only). |
 | Viewer (web app) | planned | Opens a `.vcfapkg` in the browser: object tree, subscription cards, solution chains, diff between two exports. |
 
 ## Collector

@@ -10,7 +10,7 @@
       - Policies (approval, lease, day-2 actions, content sharing, quota, limits ...)
       - Extensibility subscriptions (topic, condition, blocking, priority, runnable)
         plus the event topics they use
-      - ABX actions and action flows (with source code)
+      - ABX actions and action flows (with source code / flow definition)
       - Property groups
       - Custom resource types and resource (day-2) actions
       - Projects (reference only, so scopes can be resolved by name)
@@ -51,7 +51,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $ToolName    = 'VCFA Ledger Collector'
-$ToolVersion = '2026.1.1'
+$ToolVersion = '2026.1.2'
 $FormatVersion = '1.0'
 
 # =====================================================================================
@@ -431,7 +431,6 @@ $policies      = Get-Section 'Policies'            '/policy/api/policies?expandD
 $subsAll       = Get-Section 'Subscriptions'       '/event-broker/api/subscriptions'
 $topics        = Get-Section 'Event topics'        '/event-broker/api/topics'
 $abxActions    = Get-Section 'ABX actions'         '/abx/api/resources/actions'
-$abxFlows      = Get-Section 'ABX action flows'    '/abx/api/resources/action-flows'
 $propGroups    = Get-Section 'Property groups'     '/properties/api/property-groups'
 $customTypes   = Get-Section 'Custom resources'    '/form-service/api/custom/resource-types'
 $resActions    = Get-Section 'Resource actions'    '/form-service/api/custom/resource-actions'
@@ -458,8 +457,7 @@ foreach ($o in $sources)     { Add-Inv 'Content sources'   'content-source'  $o 
 foreach ($o in $items)       { Add-Inv 'Catalog items'     'catalog-item'    $o "$(Get-P $o.type @('name', 'id'))" }
 foreach ($o in $policies)    { Add-Inv 'Policies'          'policy'          $o "$(Get-P $o @('typeId'))" }
 foreach ($o in $subs)        { Add-Inv 'Subscriptions'     'subscription'    $o "$(Get-P $o @('eventTopicId'))" }
-foreach ($o in $abxActions)  { Add-Inv 'ABX actions'       'abx-action'      $o "$(Get-P $o @('runtime'))" }
-foreach ($o in $abxFlows)    { Add-Inv 'ABX action flows'  'abx-flow'        $o '' }
+foreach ($o in $abxActions)  { $t = if ((Get-P $o @('actionType')) -eq 'FLOW') { 'flow' } else { "$(Get-P $o @('runtime', 'runtimeName'))" }; Add-Inv 'ABX actions'       'abx-action'      $o $t }
 foreach ($o in $propGroups)  { Add-Inv 'Property groups'   'property-group'  $o "$(Get-P $o @('type'))" }
 foreach ($o in $customTypes) { Add-Inv 'Custom resources'  'custom-resource' $o "$(Get-P $o @('resourceType'))" }
 foreach ($o in $resActions)  { Add-Inv 'Resource actions'  'resource-action' $o "$(Get-P $o @('resourceType'))" }
@@ -493,7 +491,7 @@ function Add-Link($From, $To, $Rel) {
     $links.Add([ordered]@{ from = $From; to = $To; rel = $Rel })
 }
 
-$idTargets = @($inventory | Where-Object { $_.Kind -in @('abx-action', 'abx-flow', 'template', 'custom-resource') -and $_.Id.Length -ge 8 })
+$idTargets = @($inventory | Where-Object { $_.Kind -in @('abx-action', 'template', 'custom-resource') -and $_.Id.Length -ge 8 })
 $pgByName = @{}
 foreach ($i in ($inventory | Where-Object Kind -eq 'property-group')) { $pgByName[$i.Name] = $i }
 $crByType = @{}
@@ -525,7 +523,7 @@ foreach ($i in ($inventory | Where-Object Kind -eq 'catalog-item')) {
 }
 # Scan list objects that already carry their full definition
 foreach ($i in $inventory) {
-    if ($i.Kind -in @('subscription', 'policy', 'resource-action', 'custom-resource', 'abx-flow', 'catalog-item')) {
+    if ($i.Kind -in @('subscription', 'policy', 'resource-action', 'custom-resource', 'catalog-item')) {
         Resolve-Links $i (ConvertTo-Json -InputObject $i.Obj -Depth 30 -Compress)
     }
 }
@@ -587,14 +585,8 @@ do {
                 $d = Get-Safe 'ABX action' "/abx/api/resources/actions/$($i.Id)$q"
                 if (-not $d) { $d = $i.Obj }
                 $details[$i.Key] = $d
-            }
-            'abx-flow' {
-                $pid0 = Get-P $i.Obj @('projectId')
-                $q = if ($pid0) { "?projectId=$pid0" } else { '' }
-                $d = Get-Safe 'ABX action flow' "/abx/api/resources/action-flows/$($i.Id)$q"
-                if (-not $d) { $d = $i.Obj }
-                $details[$i.Key] = $d
-                Resolve-Links $i (ConvertTo-Json -InputObject $d -Depth 30 -Compress)
+                # Action flows are ABX actions with actionType FLOW; their definition names the actions they run
+                if ((Get-P $d @('actionType')) -eq 'FLOW') { Resolve-Links $i (ConvertTo-Json -InputObject $d -Depth 30 -Compress) }
             }
             'catalog-item' {
                 Write-Host "  catalog    $($i.Name)"
@@ -707,16 +699,12 @@ foreach ($i in @($inventory | Where-Object { $selected.ContainsKey($_.Key) })) {
             Save-Json "$dir/action.json" $copy; $files.Add("$dir/action.json")
             $rk = & $runtimeKeyFn (Get-P $d @('runtime', 'runtimeName'))
             if ($src) {
-                $ext = if ($rk) { $abxExt[$rk] } else { '.txt' }
+                $ext = if ((Get-P $d @('actionType')) -eq 'FLOW') { '.yaml' } elseif ($rk) { $abxExt[$rk] } else { '.txt' }
                 Save-Text "$dir/source$ext" "$src"; $files.Add("$dir/source$ext")
             }
             $meta.runtime = Get-P $d @('runtime', 'runtimeName'); $meta.entrypoint = Get-P $d @('entrypoint')
             $meta.actionType = Get-P $d @('actionType'); $meta.provider = Get-P $d @('provider')
             $mainPath = "$dir/action.json"
-        }
-        'abx-flow' {
-            $mainPath = Get-ObjPath 'abx-flows' $i.Name $i.Id '.json'
-            Save-Json $mainPath $d; $files.Add($mainPath)
         }
         'property-group' {
             $mainPath = Get-ObjPath 'property-groups' $i.Name $i.Id '.json'

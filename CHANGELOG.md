@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026.1.2 - 2026-10-29
+
+- ABX action flows now come from the ABX actions list (they are actions with `actionType` FLOW); the separate `/abx/api/resources/action-flows` call is removed, it was never a real endpoint
+- Flow definitions are saved as `abx/<name>/source.yaml`, and the actions a flow runs are linked and pulled in with `-Select`
+
 ## 2026.1.1 - 2026-10-29
 
 - An endpoint the server does not have is now reported as "not available" instead of "FAILED", including VCFA 9's 500 "No static resource" reply (seen for ABX action flows)
