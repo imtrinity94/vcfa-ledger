@@ -1,3 +1,4 @@
 # Exports - customer data, keep out of the tool repo
 VM Apps - */
 *.vcfapkg
+!viewer/public/sample.vcfapkg

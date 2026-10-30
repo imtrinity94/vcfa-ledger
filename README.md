@@ -77,6 +77,10 @@ npm run build      # static build in dist/ (Vercel-ready, vercel.json included)
 npm run build:single   # one self-contained HTML file in dist-single/
 ```
 
+### Hosting
+
+The repo deploys to Vercel as is: the root `vercel.json` installs and builds the `viewer` folder and serves `viewer/dist`. Import the repo in Vercel with the default settings; every push to `main` redeploys.
+
 The package is read in the browser only; nothing is uploaded. **Try the sample** on the front page loads `public/sample.vcfapkg`, made from test data.
 
 ## Package format
