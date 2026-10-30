@@ -6,7 +6,8 @@ import { ContentSharingPolicy } from "./vcfa/ContentSharingPolicy";
 import { ItemIcon } from "./vcfa/Catalog";
 import { RequestForm } from "./vcfa/RequestForm";
 import { InfraView } from "./vcfa/Infra";
-import { component, kindLabel, langFor, policyTypeLabel, readJson, relLabel, shortId, type Ledger, type LedgerObject, type Ref } from "../lib/ledger";
+import { WorkflowView } from "./vcfa/Workflow";
+import { component, kindLabel, langFor, policyTypeLabel, readJson, relLabel, shortId, vroStatus, type Ledger, type LedgerObject, type Ref } from "../lib/ledger";
 
 type J = Record<string, unknown>;
 
@@ -43,13 +44,15 @@ function Card({ title, extra, children }: { title: ReactNode; extra?: ReactNode;
   );
 }
 
-function RefRow({ r, dir, onNav }: { r: Ref; dir: "out" | "in"; onNav: (k: string) => void }) {
+function RefRow({ r, dir, onNav, ledger }: { r: Ref; dir: "out" | "in"; onNav: (k: string) => void; ledger?: Ledger }) {
   if (!r.obj) {
     const id = r.key.split("|")[1] ?? r.key;
+    const missing = ledger && vroStatus(ledger, id) === "NOT_FOUND";
     return (
       <li>
-        <div className="ref-row ext" title="This workflow lives in the vRO package, not in this export">
+        <div className="ref-row ext" title={missing ? "No workflow with this id in the built-in Orchestrator: deleted, or on an external vRO" : "This workflow lives in the vRO package, not in this export"}>
           <KindIcon kind="vro-workflow" /> <span className="ellipsis">vRO workflow <code>{id}</code></span>
+          {missing && <span className="vl-status bad">not found</span>}
           <span className="ref-rel">{relLabel(r.rel, dir)}</span>
         </div>
       </li>
@@ -65,7 +68,7 @@ function RefRow({ r, dir, onNav }: { r: Ref; dir: "out" | "in"; onNav: (k: strin
   );
 }
 
-function References({ o, onNav }: { o: LedgerObject; onNav: (k: string) => void }) {
+function References({ o, onNav, ledger }: { o: LedgerObject; onNav: (k: string) => void; ledger: Ledger }) {
   if (!o.out.length && !o.in.length) return null;
   return (
     <Card title="Links">
@@ -75,7 +78,7 @@ function References({ o, onNav }: { o: LedgerObject; onNav: (k: string) => void 
           {o.out.length ? (
             <ul className="ref-list">
               {o.out.map((r, i) => (
-                <RefRow key={i} r={r} dir="out" onNav={onNav} />
+                <RefRow key={i} r={r} dir="out" onNav={onNav} ledger={ledger} />
               ))}
             </ul>
           ) : (
@@ -87,7 +90,7 @@ function References({ o, onNav }: { o: LedgerObject; onNav: (k: string) => void 
           {o.in.length ? (
             <ul className="ref-list">
               {o.in.map((r, i) => (
-                <RefRow key={i} r={r} dir="in" onNav={onNav} />
+                <RefRow key={i} r={r} dir="in" onNav={onNav} ledger={ledger} />
               ))}
             </ul>
           ) : (
@@ -301,13 +304,24 @@ function SubscriptionView({ o, l, onNav }: { o: LedgerObject; l: Ledger; onNav: 
               <KindIcon kind={isVro ? "vro-workflow" : "abx-action"} /> {isVro ? "vRO workflow" : "ABX action"}
             </div>
             {runRef?.obj ? (
-              <button className="link sub-box-v" onClick={() => onNav(runRef.obj!.key)}>
-                {runRef.obj.name}
-              </button>
+              <>
+                <button className="link sub-box-v" onClick={() => onNav(runRef.obj!.key)}>
+                  {runRef.obj.name}
+                </button>
+                {runRef.obj.meta.path ? <span className="muted small">{s(runRef.obj.meta.path)}</span> : null}
+              </>
             ) : (
-              <div className="sub-box-v mono small">{s(m.runnableId) || "—"}</div>
+              <>
+                <div className="sub-box-v mono small">{s(m.runnableId) || "—"}</div>
+                {isVro && vroStatus(l, s(m.runnableId)) === "NOT_FOUND" ? (
+                  <span className="vl-status bad" style={{ alignSelf: "flex-start" }}>
+                    not found in Orchestrator
+                  </span>
+                ) : isVro ? (
+                  <span className="muted small">in the vRO package</span>
+                ) : null}
+              </>
             )}
-            {isVro && <span className="muted small">in the vRO package</span>}
           </div>
         </div>
       </Card>
@@ -330,7 +344,10 @@ function SubscriptionView({ o, l, onNav }: { o: LedgerObject; l: Ledger; onNav: 
         </div>
         <div className="fact">
           <div className="fact-k">Recover</div>
-          <div className="fact-v">{recRef?.obj ? recRef.obj.name : s(m.recoverRunnableId) ? shortId(s(m.recoverRunnableId)) : "—"}</div>
+          <div className="fact-v">
+            {recRef?.obj ? recRef.obj.name : s(m.recoverRunnableId) ? shortId(s(m.recoverRunnableId)) : "—"}
+            {!recRef?.obj && vroStatus(l, s(m.recoverRunnableId)) === "NOT_FOUND" && <span className="vl-status bad" style={{ marginLeft: 6 }}>not found</span>}
+          </div>
         </div>
       </div>
       <Card title="Details">
@@ -449,6 +466,9 @@ export function ObjectView({ o, ledger, onNav }: { o: LedgerObject; ledger: Ledg
     case "property-group":
       body = <PropertyGroupView o={o} l={ledger} />;
       break;
+    case "vro-workflow":
+      body = <WorkflowView o={o} ledger={ledger} onNav={onNav} />;
+      break;
     case "cloud-account":
     case "cloud-zone":
     case "image-profile":
@@ -496,7 +516,7 @@ export function ObjectView({ o, ledger, onNav }: { o: LedgerObject; ledger: Ledg
       )}
 
       {body}
-      <References o={o} onNav={onNav} />
+      <References o={o} onNav={onNav} ledger={ledger} />
 
       <Card title="Files in the package" extra={<span className="count">{o.files.length}</span>}>
         <ul className="file-list">

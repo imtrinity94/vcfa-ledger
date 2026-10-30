@@ -51,7 +51,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $ToolName    = 'VCFA Ledger Collector'
-$ToolVersion = '2026.3.0'
+$ToolVersion = '2026.4.0'
 $FormatVersion = '1.0'
 
 # =====================================================================================
@@ -899,6 +899,96 @@ foreach ($t in $topics) {
     }
 }
 
+# vRO workflows the package runs: name, folder, version, description, inputs / outputs and a step outline.
+# Deliberately shallow: no scripts, attributes, bindings or nested workflows are read.
+$vroLookup = New-Object System.Collections.Generic.List[object]
+$wfIds = @($links | Where-Object { $_.to.StartsWith('vro-workflow|') -and $pathByKey.ContainsKey($_.from) } | ForEach-Object { $_.to.Substring(13) } | Sort-Object -Unique)
+if ($wfIds.Count -gt 0) {
+    Write-Step "Looking up $($wfIds.Count) vRO workflow(s)"
+    function ConvertTo-Params($List) {
+        @(@($List) | Where-Object { $_ } | ForEach-Object {
+            [ordered]@{ name = Get-P $_ @('name'); type = Get-P $_ @('type'); description = Get-P $_ @('description') }
+        })
+    }
+    foreach ($wid in $wfIds) {
+        $wf = Get-Safe 'vRO workflow' "/vco/api/workflows/$wid" -Quiet404
+        if (-not $wf) {
+            Write-Host "  not found  $wid" -ForegroundColor Yellow
+            $vroLookup.Add([ordered]@{ id = $wid; status = 'NOT_FOUND' })
+            continue
+        }
+        $wfName = "$(Get-P $wf @('name', 'display-name'))"
+        Write-Host "  workflow   $wfName"
+        # folder path: from the catalog entry / category, whichever the server gives
+        $wfPath = "$(Get-P $wf @('categoryPath', 'category-path'))"
+        $catId = "$(Get-P $wf @('categoryId', 'category-id'))"
+        if (-not $wfPath -or -not $catId) {
+            $cat = Get-Safe 'vRO workflow' "/vco/api/catalog/System/Workflow/$wid" -Quiet404
+            foreach ($a in @(Get-P $cat @('attributes'))) {
+                if ($a.name -eq 'categoryId' -and -not $catId) { $catId = "$($a.value)" }
+                if ($a.name -eq 'categoryName' -and -not $wfPath) { $wfPath = "$($a.value)" }
+            }
+        }
+        if ($catId) {
+            $c = Get-Safe 'vRO workflow' "/vco/api/categories/$catId" -Quiet404
+            $cp = "$(Get-P $c @('path'))"
+            if ($cp) { $wfPath = $cp }
+        }
+        # step outline from the schema: item names and types only, in flow order from the root item
+        $steps = @()
+        $content = Get-Safe 'vRO workflow' "/vco/api/workflows/$wid/content" -Quiet404
+        if ($content) {
+            $items = @(@(Get-P $content @('workflow-item', 'workflowItems', 'items')) | Where-Object { $_ })
+            $byName = @{}
+            foreach ($it in $items) { $byName["$(Get-P $it @('name'))"] = $it }
+            $order = New-Object System.Collections.Generic.List[object]
+            $seen = @{}
+            # depth-first along the main path (out, then alternative, then catch); end items go last
+            $stack = New-Object System.Collections.Generic.Stack[string]
+            $root = "$(Get-P $content @('root-name', 'rootName'))"
+            if ($root) { $stack.Push($root) }
+            while ($stack.Count -gt 0) {
+                $n = $stack.Pop()
+                if (-not $n -or $seen.ContainsKey($n) -or -not $byName.ContainsKey($n)) { continue }
+                $it = $byName[$n]
+                if ("$(Get-P $it @('type'))" -eq 'end') { continue }
+                $seen[$n] = $true; $order.Add($it)
+                $next = New-Object System.Collections.Generic.List[string]
+                foreach ($k in @('out-name', 'alt-out-name', 'catch-name')) { $v = "$(Get-P $it @($k))"; if ($v) { $next.Add($v) } }
+                foreach ($cond in @(Get-P (Get-P $it @('conditions')) @('condition'))) { $v = "$(Get-P $cond @('label', 'out-name'))"; if ($v) { $next.Add($v) } }
+                for ($x = $next.Count - 1; $x -ge 0; $x--) { $stack.Push($next[$x]) }
+            }
+            foreach ($it in $items) { if ("$(Get-P $it @('type'))" -ne 'end' -and -not $seen.ContainsKey("$(Get-P $it @('name'))")) { $order.Add($it) } }
+            foreach ($it in $items) { if ("$(Get-P $it @('type'))" -eq 'end') { $order.Add($it) } }
+            $steps = @($order | ForEach-Object {
+                [ordered]@{
+                    name        = Get-P $_ @('name')
+                    displayName = Get-P $_ @('display-name', 'displayName')
+                    type        = Get-P $_ @('type')
+                    description = Get-P $_ @('description')
+                }
+            })
+        }
+        $summary = [ordered]@{
+            id = $wid; name = $wfName; path = $wfPath; version = Get-P $wf @('version')
+            description = Get-P $wf @('description')
+            inputs = @(ConvertTo-Params (Get-P $wf @('input-parameters', 'inputParameters')))
+            outputs = @(ConvertTo-Params (Get-P $wf @('output-parameters', 'outputParameters')))
+            steps = $steps
+        }
+        $wp = Get-ObjPath 'orchestrator/workflows' $wfName $wid '.json'
+        Save-Json $wp $summary
+        $key = "vro-workflow|$wid"
+        $pathByKey[$key] = $wp
+        $objects.Add([ordered]@{
+            key = $key; type = 'vro-workflow'; id = $wid; name = $wfName; project = $null; selectedBy = 'dependency'
+            path = $wp; files = @($wp)
+            meta = [ordered]@{ path = $wfPath; version = $summary.version; inputs = $summary.inputs.Count; outputs = $summary.outputs.Count; steps = $steps.Count }
+        })
+        $vroLookup.Add([ordered]@{ id = $wid; status = 'OK'; name = $wfName })
+    }
+}
+
 # Infrastructure references: regions, and the fabric networks / IP ranges behind exported network profiles
 if ($regions.Count) { Save-Json 'infrastructure/regions.json' @($regions) }
 if ($script:UsedFabricNets.Count) {
@@ -943,6 +1033,7 @@ $manifest = [ordered]@{
     objects       = $objects.ToArray()
     links         = $finalLinks
     eventTopics   = $topicFiles.ToArray()
+    vroWorkflows  = $vroLookup.ToArray()
     log           = $script:Log.ToArray()
 }
 Save-Json 'manifest.json' $manifest

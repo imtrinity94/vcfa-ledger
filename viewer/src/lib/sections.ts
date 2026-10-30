@@ -112,12 +112,12 @@ export const SECTIONS: Section[] = [
         icon: I.library,
         items: [
           { page: "actions", label: "Actions", kind: "abx-action" },
-          { page: "workflows", label: "Workflows" },
+          { page: "workflows", label: "Workflows", kind: "vro-workflow" },
         ],
       },
     ],
   },
-  { id: "orchestrator", label: "Orchestrator", nav: [{ label: "Workflows", icon: I.workflow, items: [{ page: "orch-workflows", label: "Workflows" }] }] },
+  { id: "orchestrator", label: "Orchestrator", nav: [{ label: "Workflows", icon: I.workflow, items: [{ page: "orch-workflows", label: "Workflows", kind: "vro-workflow" }] }] },
 ];
 
 export const sectionOf = (id: SectionId) => SECTIONS.find((s) => s.id === id)!;

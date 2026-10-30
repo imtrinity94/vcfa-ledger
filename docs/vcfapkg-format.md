@@ -36,6 +36,8 @@ infrastructure/tags/<key_value>.json          one per tag; its id is the tag tex
 infrastructure/regions.json                   all regions (reference, to resolve regionId)
 infrastructure/fabric-networks.json           fabric networks used by exported network profiles
 infrastructure/network-ip-ranges.json         IP ranges on those fabric networks
+orchestrator/workflows/<name>.json            summary of each vRO workflow the package runs: id, name, path,
+                                              version, description, inputs, outputs, steps (name / displayName / type)
 ```
 
 Names are the object's display name with characters that are not allowed in file names replaced by `_`. When two objects of the same type share a name, the second gets the first 8 characters of its id appended.
@@ -70,7 +72,7 @@ Each JSON file holds the object exactly as the API returned it, apart from the l
 | Field | Meaning |
 |---|---|
 | `key` | `<type>|<id>`, used by `links` |
-| `type` | `template`, `catalog-item`, `content-source`, `policy`, `subscription`, `abx-action` (action flows included, `meta.actionType` = `FLOW`), `property-group`, `custom-resource`, `resource-action`, `cloud-account`, `cloud-zone`, `image-profile`, `flavor-profile`, `network-profile`, `storage-profile`, `tag` |
+| `type` | `template`, `catalog-item`, `content-source`, `policy`, `subscription`, `abx-action` (action flows included, `meta.actionType` = `FLOW`), `property-group`, `custom-resource`, `resource-action`, `cloud-account`, `cloud-zone`, `image-profile`, `flavor-profile`, `network-profile`, `storage-profile`, `tag`, `vro-workflow` (summary only) |
 | `id`, `name`, `project` | as in VCFA (project resolved to its name) |
 | `selectedBy` | `user`, or `dependency` when it was pulled in by a link |
 | `path` | main file of the object |
@@ -99,7 +101,7 @@ Each JSON file holds the object exactly as the API returned it, apart from the l
 | `in-account` | zone / profile → its cloud account |
 | `applies-to` | policy (or anything else) → content source or catalog item named in its definition, e.g. a content sharing policy → the source it shares |
 
-`vro-workflow|<id>` targets are external: the workflow lives in the vRO package, and the viewer can match it when both are loaded.
+`vro-workflow|<id>` targets resolve to `vro-workflow` objects when the collector could look them up (2026.4.0+). Ids it could not find stay as external targets and are listed in `vroWorkflows` with status `NOT_FOUND`.
 
 ### log[]
 

@@ -347,3 +347,17 @@
 .vx-tag.clickable:hover { border-color: var(--vx-blue); color: var(--vx-blue); }
 .vx-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .vl-old { margin-bottom: 16px; }
+
+/* vRO workflow summary */
+.vl-status.bad { background: var(--bad-soft); color: var(--bad); border-color: transparent; }
+.wf-steps { list-style: none; margin: 0; padding: 0; counter-reset: step; display: flex; flex-direction: column; }
+.wf-step { display: grid; grid-template-columns: 28px 26px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 7px 4px; border-bottom: 1px solid var(--border); counter-increment: step; font-size: 13.5px; }
+.wf-step::before { content: counter(step); color: var(--muted); font-size: 11.5px; text-align: right; font-variant-numeric: tabular-nums; }
+.wf-step.end::before { content: ""; }
+.wf-step:last-child { border-bottom: 0; }
+.wf-step-ico { width: 22px; height: 22px; }
+.wf-step-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); justify-self: center; }
+.wf-step-name { font-weight: 500; overflow-wrap: anywhere; }
+.wf-step.end .wf-step-name { color: var(--muted); font-weight: 400; }
+.wf-step-type { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.wf-step-desc { grid-column: 3 / -1; font-size: 12px; color: var(--muted); }

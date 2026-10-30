@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.4.0 - 2026-10-30
+
+- vRO workflows the package runs (subscriptions, recover workflows, resource actions, custom resources) are now looked up in the built-in Orchestrator (`/vco/api/workflows/{id}`), so they show by name instead of id
+- Saved per workflow, in `orchestrator/workflows/<name>.json`: name, folder path, version, description, input and output parameters, and a step outline (each step's name and type, in flow order)
+- Deliberately shallow: no scripts, attributes, bindings or nested workflows are read
+- `manifest.json` gets `vroWorkflows`, the lookup result per id; ids that are not in the built-in Orchestrator (deleted, or on an external vRO) are marked `NOT_FOUND`
+
 ## 2026.3.0 - 2026-10-29
 
 - Infrastructure configuration is now captured: **cloud accounts, cloud zones, image mappings, flavor mappings, network profiles, storage profiles and tags**, under `infrastructure/`

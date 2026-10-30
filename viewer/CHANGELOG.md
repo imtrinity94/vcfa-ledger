@@ -2,6 +2,12 @@
 
 Year-based versions (YEAR.MINOR.PATCH), single source in `package.json`.
 
+## 2026.7.0 - 2026-10-30
+
+- vRO workflows show by name everywhere: subscription cards (with folder), recover runnable, links, solution diagrams and the Orchestrator / Library workflow lists (needs collector 2026.4.0 or later)
+- New workflow page: folder, version, description, inputs and outputs, what runs it, and the step outline with the Orchestrator step icons. Scripts are not shown, by design
+- Workflow ids the collector could not find in Orchestrator are marked **not found** (deleted, or on an external vRO)
+
 ## 2026.6.2 - 2026-10-30
 
 - Live at https://vcfa-ledger.vercel.app (deployed from GitHub on every push to `main`)

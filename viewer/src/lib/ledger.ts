@@ -16,7 +16,8 @@ export type Kind =
   | "flavor-profile"
   | "network-profile"
   | "storage-profile"
-  | "tag";
+  | "tag"
+  | "vro-workflow";
 
 export const KINDS: { kind: Kind; label: string; single: string }[] = [
   { kind: "template", label: "Cloud Templates", single: "Cloud Template" },
@@ -35,6 +36,7 @@ export const KINDS: { kind: Kind; label: string; single: string }[] = [
   { kind: "network-profile", label: "Network Profiles", single: "Network Profile" },
   { kind: "storage-profile", label: "Storage Profiles", single: "Storage Profile" },
   { kind: "tag", label: "Tags", single: "Tag" },
+  { kind: "vro-workflow", label: "vRO Workflows", single: "vRO Workflow" },
 ];
 
 export const kindLabel = (k: string) => KINDS.find((x) => x.kind === k)?.single ?? k;
@@ -69,6 +71,8 @@ export interface Manifest {
   objects: ManifestObject[];
   links: Link[];
   eventTopics?: { id: string; name?: string; blockable?: boolean; path: string }[];
+  /** result of looking up each referenced vRO workflow (collector 2026.4.0+) */
+  vroWorkflows?: { id: string; status: "OK" | "NOT_FOUND" | string; name?: string }[];
   log?: { section: string; endpoint: string; status: string; count?: number; message?: string }[];
 }
 
@@ -276,6 +280,11 @@ export function solutions(l: Ledger): LedgerObject[][] {
     if (c.length > 1 || ext) res.push(c);
   }
   return res.sort((a, b) => b.length - a.length);
+}
+
+/** Lookup status of a referenced vRO workflow id: "OK", "NOT_FOUND", or undefined when the collector did not look it up. */
+export function vroStatus(l: Ledger, id: string): string | undefined {
+  return l.manifest.vroWorkflows?.find((w) => w.id === id)?.status;
 }
 
 export function formatBytes(n: number) {

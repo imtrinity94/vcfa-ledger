@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { policyTypeLabel, readJson, relLabel, type Ledger, type LedgerObject, type Kind } from "../../lib/ledger";
+import { policyTypeLabel, readJson, relLabel, vroStatus, type Ledger, type LedgerObject, type Kind } from "../../lib/ledger";
 import { pageInfo, type PageId } from "../../lib/sections";
 import { ItemIcon } from "./Catalog";
 
@@ -346,35 +346,78 @@ function EventTopics({ ledger, onNav }: { ledger: Ledger; onNav: (k: string) => 
 
 function VroWorkflows({ ledger, onNav, title }: { ledger: Ledger; onNav: (k: string) => void; title: string }) {
   const [q, setQ] = useState("");
-  const map = new Map<string, { id: string; uses: { o: LedgerObject; rel: string }[] }>();
-  for (const o of ledger.objects)
+  type Row = { key: string; id: string; obj?: LedgerObject; uses: { o: LedgerObject; rel: string }[] };
+  const map = new Map<string, Row>();
+  for (const o of ledger.objects) {
+    if (o.type === "vro-workflow" && !map.has(o.key)) map.set(o.key, { key: o.key, id: o.id, obj: o, uses: [] });
     for (const r of o.out)
-      if (!r.obj && r.key.startsWith("vro-workflow|")) {
-        const id = r.key.slice("vro-workflow|".length);
-        if (!map.has(id)) map.set(id, { id, uses: [] });
-        map.get(id)!.uses.push({ o, rel: r.rel });
+      if (r.key.startsWith("vro-workflow|")) {
+        if (!map.has(r.key)) map.set(r.key, { key: r.key, id: r.key.slice("vro-workflow|".length), obj: r.obj, uses: [] });
+        map.get(r.key)!.uses.push({ o, rel: r.rel });
       }
-  const rows = [...map.values()].filter((w) => !q || w.id.includes(q) || w.uses.some((u) => u.o.name.toLowerCase().includes(q.toLowerCase())));
+  }
+  const s = q.trim().toLowerCase();
+  const rows = [...map.values()]
+    .filter((w) => !s || w.id.includes(s) || (w.obj?.name ?? "").toLowerCase().includes(s) || str(w.obj?.meta.path).toLowerCase().includes(s) || w.uses.some((u) => u.o.name.toLowerCase().includes(s)))
+    .sort((a, b) => (a.obj?.name ?? "~" + a.id).localeCompare(b.obj?.name ?? "~" + b.id));
+  const missing = rows.filter((w) => !w.obj).length;
   return (
     <div className="vl">
       <Head title={title} count={map.size} q={q} setQ={setQ} />
-      <p className="vl-note">vRO workflows that objects in this export run. Their code isn't in the VCFA export: open the matching vRO package in vRO Peekage to see them.</p>
+      <p className="vl-note">
+        vRO workflows that objects in this export run, with their folder, version, inputs, outputs and step outline. Their scripts are not exported: open the vRO package in
+        vRO Peekage for those.
+      </p>
+      {missing > 0 && !ledger.manifest.vroWorkflows && (
+        <div className="callout warn vl-old">
+          This package was made with collector <strong>{ledger.manifest.tool?.version ?? "?"}</strong>, which did not look up workflow names. Re-run collector 2026.4.0 or later to see
+          them.
+        </div>
+      )}
       <Grid
-        cols={[{ label: "Workflow ID" }, { label: "Used By" }, { label: "As" }]}
-        rows={rows.map((w) => ({
-          key: w.id,
-          cells: [
-            <code key="id">{w.id}</code>,
-            <span key="u" className="vl-chips">
-              {w.uses.map((u, i) => (
-                <button key={i} className="vx-link" onClick={() => onNav(u.o.key)}>
-                  {u.o.name}
-                </button>
-              ))}
-            </span>,
-            <span key="r">{[...new Set(w.uses.map((u) => relLabel(u.rel, "out")))].join(", ")}</span>,
-          ],
-        }))}
+        cols={[{ label: "Name" }, { label: "Folder" }, { label: "Version" }, { label: "Used By" }, { label: "As" }]}
+        rows={rows.map((w) => {
+          const st = vroStatus(ledger, w.id);
+          return {
+            key: w.key,
+            onClick: w.obj ? () => onNav(w.obj!.key) : undefined,
+            cells: [
+              w.obj ? (
+                <span key="n" className="vl-name">
+                  {w.obj.name}
+                </span>
+              ) : (
+                <span key="n">
+                  <code>{w.id}</code>{" "}
+                  {st === "NOT_FOUND" ? (
+                    <span className="vl-status bad" title="No workflow with this id in the built-in Orchestrator: deleted, or on an external vRO">
+                      not found
+                    </span>
+                  ) : null}
+                </span>
+              ),
+              <span key="f" className="small">
+                {str(w.obj?.meta.path)}
+              </span>,
+              str(w.obj?.meta.version),
+              <span key="u" className="vl-chips">
+                {w.uses.map((u, i) => (
+                  <button
+                    key={i}
+                    className="vx-link"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onNav(u.o.key);
+                    }}
+                  >
+                    {u.o.name}
+                  </button>
+                ))}
+              </span>,
+              <span key="r">{[...new Set(w.uses.map((u) => relLabel(u.rel, "out")))].join(", ")}</span>,
+            ],
+          };
+        })}
         empty="No vRO workflows are referenced in this export."
       />
     </div>
@@ -473,7 +516,10 @@ export function pageCount(page: PageId, ledger: Ledger): number | undefined {
   if (page === "event-topics") return ledger.topics.size;
   if (page === "workflows" || page === "orch-workflows") {
     const s = new Set<string>();
-    for (const o of ledger.objects) for (const r of o.out) if (!r.obj && r.key.startsWith("vro-workflow|")) s.add(r.key);
+    for (const o of ledger.objects) {
+      if (o.type === "vro-workflow") s.add(o.key);
+      for (const r of o.out) if (r.key.startsWith("vro-workflow|")) s.add(r.key);
+    }
     return s.size;
   }
   const k = pageInfo(page).item.kind;
