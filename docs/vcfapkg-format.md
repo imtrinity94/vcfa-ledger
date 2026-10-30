@@ -101,6 +101,8 @@ Each JSON file holds the object exactly as the API returned it, apart from the l
 | `in-account` | zone / profile → its cloud account |
 | `applies-to` | policy (or anything else) → content source or catalog item named in its definition, e.g. a content sharing policy → the source it shares |
 
+Which subscriptions fire for which templates is **not** stored in the package: VCF Automation has no such link. The viewer works it out from the subscription's projects, event topic and condition against the template's project, resources and properties.
+
 `vro-workflow|<id>` targets resolve to `vro-workflow` objects when the collector could look them up (2026.4.0+). Ids it could not find stay as external targets and are listed in `vroWorkflows` with status `NOT_FOUND`.
 
 ### log[]

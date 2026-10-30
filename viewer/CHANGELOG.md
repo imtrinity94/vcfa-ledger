@@ -2,6 +2,18 @@
 
 Year-based versions (YEAR.MINOR.PATCH), single source in `package.json`.
 
+## 2026.9.0 - 2026-10-30
+
+- Templates and subscriptions are now related: **Subscriptions that fire for this template** on every template, **Fires for templates** on every subscription
+- VCF Automation never stores this link, so the viewer works it out from what the package holds: the subscription's projects against the template's project, the event topic against the template's resources (compute.* needs a machine, network.* a network, disk.* a volume; deployment topics fit any template), and the condition against the template
+- Each link has a level and a "Why?" explanation:
+  - **Targets this template**: the condition names the template (blueprintId / name)
+  - **Matches on property**: the condition checks custom properties the template sets, with the value checked when it is fixed in the YAML; properties set from a request input count too
+  - **Could fire**: same project and a fitting topic, with no condition
+  - **Can't tell**: the condition checks other values the package can't resolve
+- Solution diagrams include the first two levels as dashed links; "could fire" and "can't tell" are listed on the pages only, so one unconditioned subscription doesn't pull every template into one diagram
+- Works on packages from any collector version (nothing new is needed in the export)
+
 ## 2026.8.0 - 2026-10-30
 
 - New **How do I get a .vcfapkg?** guide, from a link under Open on the front page and a ? button in the top bar: download the collector, run it on Windows (PowerShell 5.1) or macOS / Linux (PowerShell 7) with copyable commands, what it asks for, useful options, where the package is written, and how to open it here

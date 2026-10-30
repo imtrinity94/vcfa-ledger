@@ -60,7 +60,7 @@ export function ChainDiagram({ start, onNav }: { start: LedgerObject; onNav: (ke
             : `M${x1} ${y1} C ${x1 + GX / 2} ${y1}, ${x2 - GX / 2} ${y2}, ${x2} ${y2}`;
           return (
             <g key={i}>
-              <path className="ce" d={d} markerEnd="url(#ah)">
+              <path className={`ce${e.rel === "fires-for" ? " ce-fire" : ""}`} d={d} markerEnd="url(#ah)">
                 <title>{relLabel(e.rel, "out")}</title>
               </path>
             </g>
@@ -111,6 +111,7 @@ function layout(start: LedgerObject) {
   for (const o of objs) {
     for (const r of o.out) {
       if (r.rel === "from-source" || r.rel === "applies-to" || r.rel === "has-tag" || r.rel === "needs-tag" || r.rel === "in-account") continue;
+      if (r.rel === "fires-for" && r.level !== "targets" && r.level !== "property") continue;
       if (!r.obj) {
         const id = r.key.split("|")[1] ?? r.key;
         if (!nodes.has(r.key)) nodes.set(r.key, { key: r.key, kind: "vro-workflow", name: shortId(id), layer: 0, row: 0 });

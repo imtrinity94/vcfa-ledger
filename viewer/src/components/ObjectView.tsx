@@ -7,6 +7,7 @@ import { ItemIcon } from "./vcfa/Catalog";
 import { RequestForm } from "./vcfa/RequestForm";
 import { InfraView } from "./vcfa/Infra";
 import { WorkflowView } from "./vcfa/Workflow";
+import { FiresCard } from "./vcfa/Fires";
 import { component, kindLabel, langFor, policyTypeLabel, readJson, relLabel, shortId, vroStatus, type Ledger, type LedgerObject, type Ref } from "../lib/ledger";
 
 type J = Record<string, unknown>;
@@ -68,7 +69,9 @@ function RefRow({ r, dir, onNav, ledger }: { r: Ref; dir: "out" | "in"; onNav: (
   );
 }
 
-function References({ o, onNav, ledger }: { o: LedgerObject; onNav: (k: string) => void; ledger: Ledger }) {
+function References({ o: full, onNav, ledger }: { o: LedgerObject; onNav: (k: string) => void; ledger: Ledger }) {
+  // "fires for" links have their own card
+  const o = { ...full, out: full.out.filter((r) => r.rel !== "fires-for"), in: full.in.filter((r) => r.rel !== "fires-for") };
   if (!o.out.length && !o.in.length) return null;
   return (
     <Card title="Links">
@@ -516,6 +519,7 @@ export function ObjectView({ o, ledger, onNav }: { o: LedgerObject; ledger: Ledg
       )}
 
       {body}
+      {(o.type === "subscription" || o.type === "template") && <FiresCard o={o} onNav={onNav} />}
       <References o={o} onNav={onNav} ledger={ledger} />
 
       <Card title="Files in the package" extra={<span className="count">{o.files.length}</span>}>
