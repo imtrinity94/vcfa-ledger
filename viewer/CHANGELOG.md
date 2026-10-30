@@ -2,6 +2,11 @@
 
 Year-based versions (YEAR.MINOR.PATCH), single source in `package.json`.
 
+## 2026.6.2 - 2026-10-30
+
+- Live at https://vcfa-ledger.vercel.app (deployed from GitHub on every push to `main`)
+- Canonical URL and link-preview metadata for the live site
+
 ## 2026.6.1 - 2026-10-29
 
 - Infrastructure pages now say when a package was made with a collector older than 2026.3.0 (which did not capture infrastructure), instead of only showing 0 items
