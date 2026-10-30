@@ -2,6 +2,14 @@
 
 Year-based versions (YEAR.MINOR.PATCH), single source in `package.json`.
 
+## 2026.9.1 - 2026-10-30
+
+- Removed the subscription ↔ template "fires for" links added in 2026.9.0 (too complicated); the viewer is back to how 2026.8.0 worked
+
+## 2026.9.0 - 2026-10-30
+
+- Inferred which subscriptions fire for which templates (removed again in 2026.9.1)
+
 ## 2026.8.0 - 2026-10-30
 
 - New **How do I get a .vcfapkg?** guide, from a link under Open on the front page and a ? button in the top bar: download the collector, run it on Windows (PowerShell 5.1) or macOS / Linux (PowerShell 7) with copyable commands, what it asks for, useful options, where the package is written, and how to open it here

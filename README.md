@@ -11,7 +11,7 @@ The project has two parts:
 | Part | Status | What it does |
 |---|---|---|
 | `collector/Export-VCFALedgerPackage.ps1` | 2026.4.0 | PowerShell 5.1 script. Logs into one VM Apps org and writes a `.vcfapkg` package (read-only, GET calls only). |
-| `viewer/` | 2026.8.0 | Web app that opens a `.vcfapkg` in the browser, laid out like the VCF Automation UI (tabs, left nav, list pages, catalog, request forms, policy pages), read-only. |
+| `viewer/` | 2026.9.1 | Web app that opens a `.vcfapkg` in the browser, laid out like the VCF Automation UI (tabs, left nav, list pages, catalog, request forms, policy pages), read-only. |
 
 ## Collector
 
