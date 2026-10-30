@@ -3,6 +3,7 @@ import { formatBytes, parseLedger, type Ledger } from "./lib/ledger";
 import { Overview } from "./components/Overview";
 import { ObjectView } from "./components/ObjectView";
 import { Landing } from "./components/Landing";
+import { GetPackage } from "./components/GetPackage";
 import { Catalog } from "./components/vcfa/Catalog";
 import { VNav } from "./components/vcfa/VNav";
 import { ListPage, pageCount } from "./components/vcfa/ListPage";
@@ -43,6 +44,7 @@ export default function App() {
   const [view, setView] = useState<View>({ kind: "overview" });
   const [drag, setDrag] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
+  const [help, setHelp] = useState(false);
   const [loading, setLoading] = useState<{ title: string; detail?: string } | null>(null);
   const [theme, setTheme] = useState<Theme>(() => {
     try {
@@ -232,6 +234,12 @@ export default function App() {
               </svg>
               <span>Home</span>
             </button>
+            <button className="btn-ghost icon-btn" onClick={() => setHelp(true)} aria-label="How do I get a .vcfapkg?" title="How do I get a .vcfapkg?">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                <circle cx="12" cy="12" r="9" />
+                <path d="M9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.8-2.5 2.2-2.5 3.9M12 17h0" />
+              </svg>
+            </button>
             <button className="btn" onClick={() => inputRef.current?.click()}>
               Open…
             </button>
@@ -293,6 +301,7 @@ export default function App() {
           </div>
         </>
       )}
+      {help && <GetPackage onClose={() => setHelp(false)} onPick={() => inputRef.current?.click()} />}
       <BackToTop key={ledger ? "app" : "home"} target={ledger ? mainRef : landingRef} />
     </div>
   );

@@ -2,6 +2,11 @@
 
 Year-based versions (YEAR.MINOR.PATCH), single source in `package.json`.
 
+## 2026.8.0 - 2026-10-30
+
+- New **How do I get a .vcfapkg?** guide, from a link under Open on the front page and a ? button in the top bar: download the collector, run it on Windows (PowerShell 5.1) or macOS / Linux (PowerShell 7) with copyable commands, what it asks for, useful options, where the package is written, and how to open it here
+- The site now serves the collector script itself (`/collector/Export-VCFALedgerPackage.ps1`), copied from the repo at build time, so the download always matches the collector version shown in the guide
+
 ## 2026.7.0 - 2026-10-30
 
 - vRO workflows show by name everywhere: subscription cards (with folder), recover runnable, links, solution diagrams and the Orchestrator / Library workflow lists (needs collector 2026.4.0 or later)

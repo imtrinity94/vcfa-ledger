@@ -5,3 +5,4 @@ dist-single
 .vercel
 .DS_Store
 .claude-*
+public/collector/

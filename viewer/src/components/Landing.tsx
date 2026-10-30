@@ -1,4 +1,5 @@
-import type { RefObject } from "react";
+import { useState, type RefObject } from "react";
+import { GetPackage } from "./GetPackage";
 import { KindIcon } from "./Icons";
 
 const ROWS: { kind: "catalog-item" | "template" | "property-group" | "subscription" | "abx-action"; k: string; n: string }[] = [
@@ -22,6 +23,7 @@ export function Landing({
   busy: boolean;
   error: string | null;
 }) {
+  const [help, setHelp] = useState(false);
   return (
     <main className="lp" ref={scrollRef}>
       <section className="lp-hero">
@@ -46,6 +48,14 @@ export function Landing({
               </button>
               <span className="lp-hint">or drop it anywhere on this page</span>
             </div>
+            <button className="link gp-open" onClick={() => setHelp(true)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                <circle cx="12" cy="12" r="9" />
+                <path d="M9.5 9.2a2.6 2.6 0 0 1 5 .9c0 1.8-2.5 2.2-2.5 3.9M12 17h0" />
+              </svg>
+              How do I get a .vcfapkg?
+            </button>
+            {help && <GetPackage onClose={() => setHelp(false)} onPick={onPick} />}
             {error && <div className="callout warn">{error}</div>}
             <p className="lp-trust">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

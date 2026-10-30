@@ -361,3 +361,25 @@
 .wf-step.end .wf-step-name { color: var(--muted); font-weight: 400; }
 .wf-step-type { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
 .wf-step-desc { grid-column: 3 / -1; font-size: 12px; color: var(--muted); }
+
+/* "How do I get a .vcfapkg?" guide */
+.gp-open { margin-top: -4px; font-size: 14px; }
+.gp { width: min(720px, 100%); }
+.gp .modal-head h2 { font-size: 20px; }
+.gp-lede { margin: 4px 0 14px; color: var(--muted); line-height: 1.55; }
+.gp-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 18px; }
+.gp-steps > li > strong { font-size: 15px; }
+.gp-steps > li::marker { font-weight: 700; color: var(--accent); }
+.gp-ver { margin-left: 8px; font-size: 12px; color: var(--muted); background: var(--panel-2); border-radius: 999px; padding: 1px 8px; }
+.gp-links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.gp-links a { text-decoration: none; }
+.gp-note { margin: 8px 0 6px; font-size: 13.5px; line-height: 1.55; }
+.gp-cmd { display: flex; align-items: center; gap: 8px; background: var(--console-bg); color: var(--console-fg); border-radius: 8px; padding: 6px 6px 6px 12px; margin: 6px 0; }
+.gp-cmd code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; font-size: 12.5px; }
+.gp-cmd .btn-ghost { color: var(--console-fg); background: rgb(255 255 255 / 0.08); }
+.gp-os { display: inline-flex; gap: 2px; border: 1px solid var(--border); border-radius: 8px; padding: 2px; margin-top: 8px; }
+.gp-os button { background: none; border: 0; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 13px; color: var(--muted); }
+.gp-os button.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.gp-more summary { margin: 6px 0; }
+.gp-opts td { padding: 4px 8px; font-size: 13px; }
+.gp-trust { color: var(--ok); }
