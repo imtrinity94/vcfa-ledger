@@ -1,5 +1,4 @@
 import JSZip from "jszip";
-import { fireFor, templateFacts, type FireLevel } from "./fires";
 
 export type Kind =
   | "template"
@@ -79,9 +78,6 @@ export interface Manifest {
 
 export interface Ref {
   rel: string;
-  /** for "fires-for" links: how sure the inference is, and why */
-  level?: FireLevel;
-  reason?: string;
   /** object in this package, or undefined for external (vRO workflow) */
   obj?: LedgerObject;
   key: string;
@@ -192,28 +188,6 @@ export async function parseLedger(buf: ArrayBuffer, fileName: string): Promise<L
     if (to) to.in.push({ rel: l.rel, obj: from, key: l.from });
   }
 
-  // Subscriptions -> templates they fire for (inferred; VCFA has no stored link)
-  const subs = objects.filter((o) => o.type === "subscription");
-  const tpls = objects.filter((o) => o.type === "template");
-  if (subs.length && tpls.length) {
-    const projectName = (id: string) => projName.get(id) ?? id;
-    const facts = tpls.map((t) => {
-      const meta = fileJson(t.path) ?? {};
-      const yaml = files.get(t.path.replace(/template\.json$/, "content.yaml")) ?? "";
-      return { t, f: templateFacts(t.id, t.name, meta, yaml) };
-    });
-    for (const s of subs) {
-      const sj = fileJson(s.path);
-      if (!sj) continue;
-      for (const { t, f } of facts) {
-        const fire = fireFor(sj, f, projectName);
-        if (!fire) continue;
-        s.out.push({ rel: "fires-for", obj: t, key: t.key, level: fire.level, reason: fire.reason });
-        t.in.push({ rel: "fires-for", obj: s, key: s.key, level: fire.level, reason: fire.reason });
-      }
-    }
-  }
-
   const topics = new Map<string, Record<string, unknown>>();
   for (const t of manifest.eventTopics ?? []) {
     const txt = files.get(t.path);
@@ -270,7 +244,6 @@ export const REL_LABEL: Record<string, [string, string]> = {
   "needs-tag": ["Constrained to tag", "Required by template"],
   "has-tag": ["Tagged", "Tagged on"],
   "in-account": ["In cloud account", "Contains"],
-  "fires-for": ["Fires for template", "Subscription fires for it"],
 };
 
 export function relLabel(rel: string, dir: "out" | "in") {
@@ -286,7 +259,6 @@ export function component(start: LedgerObject): LedgerObject[] {
     for (const r of [...out[i].out, ...out[i].in]) {
       // content sources and the policies on them tie everything together; don't walk through them
       if (r.rel === "from-source" || r.rel === "applies-to" || r.rel === "has-tag" || r.rel === "needs-tag" || r.rel === "in-account") continue;
-      if (r.rel === "fires-for" && r.level !== "targets" && r.level !== "property") continue;
       if (r.obj && !seen.has(r.obj.key)) {
         seen.add(r.obj.key);
         out.push(r.obj);
