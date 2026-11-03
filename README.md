@@ -11,7 +11,7 @@ The project has two parts:
 | Part | Status | What it does |
 |---|---|---|
 | `collector/Export-VCFALedgerPackage.ps1` | 2026.4.0 | PowerShell 5.1 script. Logs into one VM Apps org and writes a `.vcfapkg` package (read-only, GET calls only). |
-| `viewer/` | 2026.10.0 | Web app that opens a `.vcfapkg` in the browser, laid out like the VCF Automation UI (tabs, left nav, list pages, catalog, request forms, policy pages), read-only. |
+| `viewer/` | 2026.11.0 | Web app that opens a `.vcfapkg` in the browser, laid out like the VCF Automation UI (tabs, left nav, list pages, catalog, request forms, policy pages), read-only. |
 
 ## Collector
 
@@ -86,6 +86,10 @@ The repo deploys to Vercel as is: the root `vercel.json` installs and builds the
 A package can also be opened from a link (`/?url=<link to a .vcfapkg>`), and such packages get a Share button. Downloads go straight from the browser when the hosting site allows it (CORS); otherwise the small `api/fetch-package` function on Vercel fetches it (public https/http addresses only, 4.4 MB max, zip only, nothing stored).
 
 The site also serves the collector script at `/collector/Export-VCFALedgerPackage.ps1` (copied from `collector/` at build time) and explains how to run it under **How do I get a .vcfapkg?**.
+
+### Export documentation
+
+**Export** in the top bar downloads one zip, built in the browser: `report.html` (self-contained, prints to PDF), `<org> - LLD.docx` (Word low level design), `report.md`, `inventory.csv` / `.md`, `diagrams/` (SVG and PNG) and `sources/` (every file of the package). Tick **Hide host names and user names** to replace FQDNs, endpoints, names in the DNS domain, created by / updated by, owners and e-mail addresses with placeholders before sharing.
 
 The package is read in the browser only; nothing is uploaded. **Try the sample** on the front page loads `public/sample.vcfapkg`, made from test data.
 

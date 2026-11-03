@@ -11,11 +11,11 @@ interface N {
   row: number;
 }
 
-const W = 220;
-const H = 54;
-const GX = 78;
-const GY = 16;
-const PAD = 14;
+export const W = 220;
+export const H = 54;
+export const GX = 78;
+export const GY = 16;
+export const PAD = 14;
 
 const KIND_ORDER = ["catalog-item", "subscription", "resource-action", "policy", "template", "custom-resource", "abx-action", "property-group", "image-profile", "flavor-profile", "vro-workflow"];
 const BAR: Record<string, string> = {
@@ -99,11 +99,11 @@ export function ChainDiagram({ start, onNav }: { start: LedgerObject; onNav: (ke
   );
 }
 
-function clip(s: string, n: number) {
+export function clip(s: string, n: number) {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
 }
 
-function layout(start: LedgerObject) {
+export function layout(start: LedgerObject) {
   const objs = component(start);
   const nodes = new Map<string, N>();
   for (const o of objs) nodes.set(o.key, { key: o.key, obj: o, kind: o.type, name: o.name, layer: 0, row: 0 });

@@ -2,6 +2,18 @@
 
 Year-based versions (YEAR.MINOR.PATCH), single source in `package.json`.
 
+## 2026.11.0 - 2026-11-03
+
+- **Export documentation** (Export button in the top bar): one zip, built in the browser, with
+  - `report.html`: the whole package as one self-contained page (fonts, styles and diagrams inline), organised like the VCF Automation tabs, with a contents list; prints to PDF
+  - `<org> - LLD.docx`: the same content as a Word low level design (cover page, contents, page numbers)
+  - `report.md`: the same content as Markdown, for a wiki or git
+  - `inventory.csv` / `inventory.md`: one row per object with its links
+  - `diagrams/`: every solution diagram as SVG and PNG
+  - `sources/`: every file of the package (template YAML of all versions, ABX code, custom forms, raw JSON)
+- Per object: details, versions, request inputs, custom form fields, content sharing (who sees what), subscription topic / condition / runnable, ABX runtime and code, property group properties, mappings, networks and IP ranges, workflow inputs / outputs / steps, and links. The HTML, Word and Markdown reports are built from the same content, so they always match
+- **Hide host names and user names** option: replaces the VCF Automation FQDN, vCenter / NSX and other endpoints, names in the DNS domain, created by / updated by, owners, user principals and e-mail addresses with placeholders (`host-1.redacted.example`, `user-1`) everywhere, file names included
+
 ## 2026.10.0 - 2026-11-03
 
 - **Open from a link**, like vRO Peekage: paste the URL of a `.vcfapkg` on the front page (GitHub, GitLab, Dropbox or any https link; GitHub / GitLab "view" links and Dropbox share links are turned into download links)

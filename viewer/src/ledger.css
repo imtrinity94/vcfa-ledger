@@ -383,3 +383,16 @@
 .gp-more summary { margin: 6px 0; }
 .gp-opts td { padding: 4px 8px; font-size: 13px; }
 .gp-trust { color: var(--ok); }
+
+/* ---------- Export documentation dialog ---------- */
+.ex-list { list-style: none; margin: 4px 0 14px; padding: 0; display: grid; gap: 6px; }
+.ex-list li { display: flex; gap: 10px; align-items: baseline; font-size: 14px; }
+.ex-list strong { min-width: 150px; font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+.ex-list span { color: var(--muted); }
+.ex-opt { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); cursor: pointer; margin-bottom: 12px; }
+.ex-opt input { margin-top: 4px; width: 16px; height: 16px; flex: none; }
+.ex-opt > span { display: grid; gap: 4px; }
+.ex-opt .gp-note { margin: 0; }
+.ex-act { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.ok-callout { border-color: var(--ok); }
+@media (max-width: 600px) { .ex-list li { flex-direction: column; gap: 0; } }
