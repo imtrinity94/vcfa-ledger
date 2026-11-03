@@ -6,3 +6,4 @@ dist-single
 .DS_Store
 .claude-*
 public/collector/
+*.tsbuildinfo
