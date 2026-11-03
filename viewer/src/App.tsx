@@ -4,6 +4,7 @@ import { Overview } from "./components/Overview";
 import { ObjectView } from "./components/ObjectView";
 import { Landing } from "./components/Landing";
 import { GetPackage } from "./components/GetPackage";
+import { fetchPackage, shareLink } from "./lib/fetchPackage";
 import { Catalog } from "./components/vcfa/Catalog";
 import { VNav } from "./components/vcfa/VNav";
 import { ListPage, pageCount } from "./components/vcfa/ListPage";
@@ -45,7 +46,10 @@ export default function App() {
   const [drag, setDrag] = useState(false);
   const [navOpen, setNavOpen] = useState(false);
   const [help, setHelp] = useState(false);
-  const [loading, setLoading] = useState<{ title: string; detail?: string } | null>(null);
+  const [loading, setLoading] = useState<{ title: string; detail?: string; pct?: number } | null>(null);
+  /** Link the open package was loaded from (enables Share), if any */
+  const [sourceUrl, setSourceUrl] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [theme, setTheme] = useState<Theme>(() => {
     try {
       return (localStorage.getItem("theme") as Theme) || "system";
@@ -54,6 +58,8 @@ export default function App() {
     }
   });
   const inputRef = useRef<HTMLInputElement>(null);
+  const srcRef = useRef<string | null>(null);
+  srcRef.current = sourceUrl;
   const mainRef = useRef<HTMLElement>(null);
   const landingRef = useRef<HTMLElement>(null);
 
@@ -75,7 +81,7 @@ export default function App() {
   }, []);
 
   const loadBuffer = useCallback(
-    async (buf: ArrayBuffer, name: string, size: number) => {
+    async (buf: ArrayBuffer, name: string, size: number, fromUrl?: string) => {
       setBusy(true);
       setError(null);
       setLoading({ title: "Reading package…", detail: `${name} · ${formatBytes(size)}` });
@@ -83,6 +89,10 @@ export default function App() {
       try {
         const l = await parseLedger(buf, name);
         setLedger(l);
+        setSourceUrl(fromUrl ?? null);
+        // keep ?url= in the address bar for packages opened from a link, drop it otherwise
+        const search = fromUrl ? `?url=${encodeURIComponent(fromUrl)}` : "";
+        if (location.search !== search) history.replaceState(null, "", location.pathname + search + location.hash);
         document.title = `${l.manifest.source.organization || name} · VCFA Ledger`;
         const h = readHash();
         if ((h.kind === "object" && l.byKey.has(h.key)) || h.kind === "page") setView(h);
@@ -100,6 +110,52 @@ export default function App() {
 
   const load = useCallback(async (f: File) => loadBuffer(await f.arrayBuffer(), f.name, f.size), [loadBuffer]);
 
+  /** "Open from link" and shared ?url= links */
+  const loadUrl = useCallback(
+    async (url: string) => {
+      setBusy(true);
+      setError(null);
+      let host = "";
+      try {
+        host = new URL(url.trim()).hostname;
+      } catch {
+        /* reported by fetchPackage */
+      }
+      setLoading({ title: "Downloading package…", detail: host });
+      try {
+        const { file } = await fetchPackage(url, (loaded, total) =>
+          setLoading({
+            title: "Downloading package…",
+            detail: `${host} · ${formatBytes(loaded)}${total ? ` of ${formatBytes(total)}` : ""}`,
+            pct: total ? Math.min(100, Math.round((loaded / total) * 100)) : undefined,
+          }),
+        );
+        await loadBuffer(await file.arrayBuffer(), file.name, file.size, url.trim());
+      } catch (e) {
+        setError(`Couldn't open that link: ${(e as Error).message}`);
+        setBusy(false);
+        setLoading(null);
+      }
+    },
+    [loadBuffer],
+  );
+
+  // Open a shared link: vcfa-ledger.vercel.app/?url=<package-url>
+  useEffect(() => {
+    const shared = new URLSearchParams(location.search).get("url");
+    if (shared) void loadUrl(shared);
+    // run once on start-up
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const copyShareLink = useCallback(() => {
+    if (!sourceUrl) return;
+    navigator.clipboard?.writeText(shareLink(sourceUrl)).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 1500);
+    });
+  }, [sourceUrl]);
+
   const loadSample = useCallback(async () => {
     try {
       const r = await fetch("/sample.vcfapkg");
@@ -114,17 +170,34 @@ export default function App() {
   const goHome = useCallback(() => {
     setLedger(null);
     setError(null);
+    setSourceUrl(null);
     setNavOpen(false);
     setView({ kind: "overview" });
     document.title = HOME_TITLE;
-    if (location.hash) history.pushState(null, "", location.pathname);
+    if (location.hash || location.search) history.pushState(null, "", location.pathname);
   }, []);
 
   useEffect(() => {
-    const onPop = () => setView(readHash());
+    // Back / Forward: follow the address bar, opening or closing a linked package when ?url= changes
+    const onPop = () => {
+      const url = new URLSearchParams(location.search).get("url");
+      const cur = srcRef.current;
+      if (url && url !== cur) {
+        void loadUrl(url);
+        return;
+      }
+      if (!url && cur) {
+        setLedger(null);
+        setSourceUrl(null);
+        setError(null);
+        document.title = HOME_TITLE;
+        return;
+      }
+      setView(readHash());
+    };
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);
-  }, []);
+  }, [loadUrl]);
 
   useEffect(() => {
     let depth = 0;
@@ -196,8 +269,8 @@ export default function App() {
             </span>
             <strong>{loading.title}</strong>
             {loading.detail && <span className="load-detail">{loading.detail}</span>}
-            <span className="load-bar indeterminate">
-              <span />
+            <span className={`load-bar${loading.pct === undefined ? " indeterminate" : ""}`}>
+              <span style={loading.pct !== undefined ? { width: `${loading.pct}%` } : undefined} />
             </span>
           </div>
         </div>
@@ -234,6 +307,14 @@ export default function App() {
               </svg>
               <span>Home</span>
             </button>
+            {sourceUrl && (
+              <button className="btn-ghost export-btn" onClick={copyShareLink} title="Copy a link that opens this package in VCFA Ledger" aria-label="Copy share link">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" />
+                </svg>
+                <span>{linkCopied ? "Copied" : "Share"}</span>
+              </button>
+            )}
             <button className="btn-ghost icon-btn" onClick={() => setHelp(true)} aria-label="How do I get a .vcfapkg?" title="How do I get a .vcfapkg?">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
                 <circle cx="12" cy="12" r="9" />
@@ -271,7 +352,7 @@ export default function App() {
       </header>
 
       {!ledger ? (
-        <Landing scrollRef={landingRef} onPick={() => inputRef.current?.click()} onSample={loadSample} busy={busy} error={error} />
+        <Landing scrollRef={landingRef} onPick={() => inputRef.current?.click()} onSample={loadSample} onOpenUrl={loadUrl} busy={busy} error={error} />
       ) : (
         <>
           <nav className="vtabs" aria-label="Sections">

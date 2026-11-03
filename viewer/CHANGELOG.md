@@ -2,6 +2,14 @@
 
 Year-based versions (YEAR.MINOR.PATCH), single source in `package.json`.
 
+## 2026.10.0 - 2026-11-03
+
+- **Open from a link**, like vRO Peekage: paste the URL of a `.vcfapkg` on the front page (GitHub, GitLab, Dropbox or any https link; GitHub / GitLab "view" links and Dropbox share links are turned into download links)
+- **Shareable links**: a package opened from a link gets a **Share** button that copies `vcfa-ledger.vercel.app/?url=<package link>`; opening that link loads the package straight away, including a page in the URL (`#/p/templates` …). Back / Forward follow the address bar
+- The browser downloads the file directly when the site allows it; when a site blocks that (no CORS), a small download helper on the site (`/api/fetch-package`) fetches it instead: public addresses only, 4.4 MB max, zip files only, nothing stored
+- Progress bar while downloading; clear messages when a link returns a web page instead of the file, needs a sign-in, or is too large for the helper
+- The "How do I get a .vcfapkg?" guide mentions opening and sharing from a link
+
 ## 2026.9.1 - 2026-10-30
 
 - Removed the subscription ↔ template "fires for" links added in 2026.9.0 (too complicated); the viewer is back to how 2026.8.0 worked

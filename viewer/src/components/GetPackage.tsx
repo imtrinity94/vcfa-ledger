@@ -147,7 +147,10 @@ export function GetPackage({ onClose, onPick }: { onClose: () => void; onPick?: 
 
           <li>
             <strong>Open it here</strong>
-            <p className="gp-note">Drop the file anywhere on this page, or:</p>
+            <p className="gp-note">
+              Drop the file anywhere on this page, or put it somewhere that serves it over https (GitHub, GitLab, Dropbox…) and paste the link on the front page. A package
+              opened from a link gets a <strong>Share</strong> button that copies a link opening it straight in VCFA Ledger.
+            </p>
             {onPick && (
               <button
                 className="btn primary"

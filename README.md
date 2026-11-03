@@ -11,7 +11,7 @@ The project has two parts:
 | Part | Status | What it does |
 |---|---|---|
 | `collector/Export-VCFALedgerPackage.ps1` | 2026.4.0 | PowerShell 5.1 script. Logs into one VM Apps org and writes a `.vcfapkg` package (read-only, GET calls only). |
-| `viewer/` | 2026.9.1 | Web app that opens a `.vcfapkg` in the browser, laid out like the VCF Automation UI (tabs, left nav, list pages, catalog, request forms, policy pages), read-only. |
+| `viewer/` | 2026.10.0 | Web app that opens a `.vcfapkg` in the browser, laid out like the VCF Automation UI (tabs, left nav, list pages, catalog, request forms, policy pages), read-only. |
 
 ## Collector
 
@@ -82,6 +82,8 @@ npm run build:single   # one self-contained HTML file in dist-single/
 ### Hosting
 
 The repo deploys to Vercel as is: the root `vercel.json` installs and builds the `viewer` folder and serves `viewer/dist`. Import the repo in Vercel with the default settings; every push to `main` redeploys.
+
+A package can also be opened from a link (`/?url=<link to a .vcfapkg>`), and such packages get a Share button. Downloads go straight from the browser when the hosting site allows it (CORS); otherwise the small `api/fetch-package` function on Vercel fetches it (public https/http addresses only, 4.4 MB max, zip only, nothing stored).
 
 The site also serves the collector script at `/collector/Export-VCFALedgerPackage.ps1` (copied from `collector/` at build time) and explains how to run it under **How do I get a .vcfapkg?**.
 

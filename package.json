@@ -1,0 +1,6 @@
+{
+  "name": "vcfa-ledger-site",
+  "private": true,
+  "type": "module",
+  "description": "Vercel project root: the viewer is built from ./viewer, the download helper lives in ./api"
+}

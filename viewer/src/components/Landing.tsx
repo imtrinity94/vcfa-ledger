@@ -14,12 +14,14 @@ export function Landing({
   scrollRef,
   onPick,
   onSample,
+  onOpenUrl,
   busy,
   error,
 }: {
   scrollRef: RefObject<HTMLElement | null>;
   onPick: () => void;
   onSample: () => void;
+  onOpenUrl: (url: string) => void;
   busy: boolean;
   error: string | null;
 }) {
@@ -56,6 +58,7 @@ export function Landing({
               How do I get a .vcfapkg?
             </button>
             {help && <GetPackage onClose={() => setHelp(false)} onPick={onPick} />}
+            <OpenFromUrl onOpenUrl={onOpenUrl} busy={busy} />
             {error && <div className="callout warn">{error}</div>}
             <p className="lp-trust">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -105,5 +108,39 @@ export function Landing({
         </span>
       </footer>
     </main>
+  );
+}
+
+function OpenFromUrl({ onOpenUrl, busy }: { onOpenUrl: (url: string) => void; busy: boolean }) {
+  const [url, setUrl] = useState("");
+  return (
+    <form
+      className="lp-url"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (url.trim()) onOpenUrl(url.trim());
+      }}
+    >
+      <label htmlFor="lp-url-input" className="lp-url-label">
+        or open a package from a link
+      </label>
+      <div className="lp-url-row">
+        <input
+          id="lp-url-input"
+          className="input"
+          type="url"
+          inputMode="url"
+          placeholder="https://github.com/…/my-org_20261030.vcfapkg"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          disabled={busy}
+          spellCheck={false}
+          autoComplete="off"
+        />
+        <button className="btn" type="submit" disabled={busy || !url.trim()}>
+          Open link
+        </button>
+      </div>
+    </form>
   );
 }
