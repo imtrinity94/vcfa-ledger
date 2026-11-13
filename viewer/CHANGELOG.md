@@ -2,6 +2,11 @@
 
 Year-based versions (YEAR.MINOR.PATCH), single source in `package.json`.
 
+## 2026.11.1 - 2026-11-13
+
+- The viewer can now also run on Cloudflare Pages, alongside Vercel. The "Open from URL" fallback proxy is shared by both: `functions/api/fetch-package.ts` hands Cloudflare's request to the same `api/fetch-package.ts`, and `viewer/public/_headers` gives Cloudflare the same security headers as `vercel.json`
+- The proxy now checks a link's host name with `resolve4`/`resolve6` instead of `lookup` (Cloudflare does not support `lookup`); private and internal addresses are still refused at every redirect hop
+
 ## 2026.11.0 - 2026-11-03
 
 - **Export documentation** (Export button in the top bar): one zip, built in the browser, with
