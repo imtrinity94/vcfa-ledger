@@ -45,6 +45,18 @@ interface Page {
 
 // ------------------------------------------------------------------ model building
 
+/** Readable form of a custom-form binding: {values:["`lab-`","vmName"],operator:"concatenate"} -> "lab-" + vmName */
+function bindLabel(b: unknown): string {
+  if (typeof b === "string") return b;
+  if (!b || typeof b !== "object") return str(b);
+  const o = b as J;
+  const vals = Array.isArray(o.values) ? o.values.map((x) => (typeof x === "string" ? x.replace(/^`(.*)`$/, '"$1"') : bindLabel(x))) : [];
+  const op = str(o.operator);
+  if (op === "concatenate") return vals.join(" + ");
+  if (o.field) return str(o.field);
+  return op ? `${op}(${vals.join(", ")})` : JSON.stringify(b);
+}
+
 function sourceLabel(v: unknown): string | undefined {
   if (!v || typeof v !== "object" || Array.isArray(v)) return undefined;
   const o = v as J;
@@ -53,7 +65,7 @@ function sourceLabel(v: unknown): string | undefined {
     const id = str(o.id);
     return `${type === "scriptAction" ? "vRO action" : type || "binding"}${id ? ` ${id}` : ""}`;
   }
-  if (o.bind) return `bound to ${str(o.bind)}`;
+  if (o.bind) return `bound to ${bindLabel(o.bind)}`;
   return JSON.stringify(v);
 }
 

@@ -2,6 +2,10 @@
 
 Year-based versions (YEAR.MINOR.PATCH), single source in `package.json`.
 
+## 2026.11.1 - 2026-11-20
+
+- Request form preview: bound defaults are shown readably (`"lab-" + vmName` instead of raw JSON)
+
 ## 2026.11.0 - 2026-11-03
 
 - **Export documentation** (Export button in the top bar): one zip, built in the browser, with
