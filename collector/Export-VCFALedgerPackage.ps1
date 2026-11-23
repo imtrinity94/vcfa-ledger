@@ -1,10 +1,11 @@
 <#
 .SYNOPSIS
     VCFA Ledger collector - exports the customer-customisable content of one
-    VCF Automation 9.x VM Apps organization into a .vcfapkg package.
+    VCF Automation 9.x VM Apps organization (or, with -Version 8, one Aria
+    Automation 8.x tenant) into a .vcfapkg package.
 
 .DESCRIPTION
-    Logs into one VM Apps organization and captures, read-only (GET calls only):
+    Logs into one VM Apps organization (9.x) or tenant (8.x) and captures, read-only (GET calls only):
       - Cloud templates (current content + every version)
       - Catalog content sources, catalog items and their custom request forms
       - Policies (approval, lease, day-2 actions, content sharing, quota, limits ...)
@@ -34,6 +35,12 @@
 
 .EXAMPLE
     .\Export-VCFALedgerPackage.ps1 -Fqdn auto.vmw.lab -Organization lab -UseApiToken
+
+.EXAMPLE
+    .\Export-VCFALedgerPackage.ps1 -Version 8 -Fqdn ca-vra.example.local -Organization "System Domain" -SkipCertificateCheck
+    Aria Automation 8.x: logs in through CSP (user, password, domain) and exports one tenant.
+    The login domain is -AuthDomain (default: -Organization), so the tenant name and the
+    login domain can differ, e.g. -Organization acme -AuthDomain "System Domain".
 #>
 [CmdletBinding()]
 param(
@@ -46,12 +53,17 @@ param(
     [switch]$SkipTemplateVersions,
     [switch]$IncludeSystemSubscriptions,
     [switch]$NoArchive,
-    [string]$OutputPath
+    [string]$OutputPath,
+    # 9 = VCF Automation 9.x VM Apps organization (default). 8 = Aria Automation 8.x tenant.
+    [ValidateSet('8', '9')]
+    [string]$Version = '9',
+    # 8.x only: domain sent with the CSP login (e.g. 'System Domain' for local users). Defaults to -Organization.
+    [string]$AuthDomain
 )
 
 $ErrorActionPreference = 'Stop'
 $ToolName    = 'VCFA Ledger Collector'
-$ToolVersion = '2026.4.0'
+$ToolVersion = '2026.5.0'
 $FormatVersion = '1.0'
 
 # =====================================================================================
@@ -193,9 +205,56 @@ function Get-PlainText([Security.SecureString]$Sec) {
     finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b) }
 }
 
+# Aria Automation 8.x (-Version 8): CSP refresh token first, then an IaaS bearer token from it.
+# The refresh token stays in memory for this run only, so an expired bearer token is renewed without the password.
+function Connect-Aria8 {
+    $base = $script:Conn.Base
+    $wo = Get-WebOpts
+    for ($attempt = 0; $attempt -lt 2; $attempt++) {
+        if (-not $script:Conn.RefreshToken) {
+            if ($UseApiToken) {
+                if (-not $script:ApiTokenPlain) {
+                    $sec = Read-Host -AsSecureString "API token for tenant '$Organization'"
+                    $script:ApiTokenPlain = Get-PlainText $sec
+                }
+                $script:Conn.RefreshToken = $script:ApiTokenPlain
+                $script:AuthInfo = 'API token (CSP refresh token, then /iaas/api/login)'
+            }
+            else {
+                $user = "$($Credential.UserName)"
+                if ($user -match "^(.+)@$([regex]::Escape($Organization))$") { $user = $Matches[1] }
+                $authDomain = if ($AuthDomain) { $AuthDomain } else { $Organization }
+                $body = @{ username = $user; password = $Credential.GetNetworkCredential().Password; domain = $authDomain } | ConvertTo-Json -Compress
+                try {
+                    $csp = Invoke-RestMethod @wo -Method Post -Uri "$base/csp/gateway/am/api/login?access_token" `
+                        -Body $body -ContentType 'application/json' -Headers @{ Accept = 'application/json' }
+                }
+                catch { throw "Login failed (CSP): $(Get-ErrMsg $_)" }
+                if (-not $csp.refresh_token) { throw 'Login failed: CSP returned no refresh token.' }
+                $script:Conn.RefreshToken = "$($csp.refresh_token)"
+                $script:AuthInfo = "CSP login as $user (domain $authDomain), then /iaas/api/login"
+            }
+        }
+        try {
+            $iaas = Invoke-RestMethod @wo -Method Post -Uri "$base/iaas/api/login" `
+                -Body (@{ refreshToken = $script:Conn.RefreshToken } | ConvertTo-Json -Compress) `
+                -ContentType 'application/json' -Headers @{ Accept = 'application/json' }
+            if ($iaas.token) { return $iaas.token }
+        }
+        catch {
+            if ($attempt -eq 0) { $script:Conn.RefreshToken = $null; continue }
+            throw "Login failed (iaas/api/login): $(Get-ErrMsg $_)"
+        }
+        # Answered without an error but with no token: treat it like a stale refresh token
+        $script:Conn.RefreshToken = $null
+    }
+    throw 'Login failed: no bearer token returned (iaas/api/login).'
+}
+
 function Connect-Vcfa {
     $base = $script:Conn.Base
     $wo = Get-WebOpts
+    if ($Version -eq '8') { return Connect-Aria8 }
     if ($UseApiToken) {
         if (-not $script:ApiTokenPlain) {
             $sec = Read-Host -AsSecureString "API token for organization '$Organization'"
@@ -406,15 +465,24 @@ function Select-Inventory($Inventory) {
 
 Write-Host ''
 Write-Host "  $ToolName $ToolVersion" -ForegroundColor White
-Write-Host '  VCF Automation 9.x - VM Apps organization export (read-only)' -ForegroundColor Gray
+if ($Version -eq '8') {
+    Write-Host '  Aria Automation 8.x - tenant export (read-only)' -ForegroundColor Gray
+    $orgLabel = 'Tenant'
+    $orgHint  = ' (e.g. System Domain)'
+}
+else {
+    Write-Host '  VCF Automation 9.x - VM Apps organization export (read-only)' -ForegroundColor Gray
+    $orgLabel = 'VM Apps'
+    $orgHint  = ''
+}
 
 if (-not $Fqdn -and $Preset.Fqdn) { $Fqdn = $Preset.Fqdn }
 if (-not $Organization -and $Preset.Organization) { $Organization = $Preset.Organization }
 if (-not $SkipCertificateCheck -and $Preset.SkipCertificateCheck) { $SkipCertificateCheck = $true }
 
-if (-not $Fqdn) { $Fqdn = Read-Host 'VCF Automation FQDN (e.g. auto.vmw.lab)' }
+if (-not $Fqdn) { $Fqdn = Read-Host 'VCF Automation / Aria Automation FQDN (e.g. auto.vmw.lab)' }
 $Fqdn = ($Fqdn -replace '^https?://', '').TrimEnd('/')
-if (-not $Organization) { $Organization = Read-Host 'VM Apps organization name' }
+if (-not $Organization) { $Organization = Read-Host "$orgLabel name$orgHint" }
 if (-not $Fqdn -or -not $Organization) { throw 'FQDN and organization are required.' }
 
 if (-not $PSBoundParameters.ContainsKey('SkipCertificateCheck') -and -not $Preset.SkipCertificateCheck) {
@@ -434,7 +502,7 @@ if (-not $UseApiToken -and -not $Credential) {
     if (-not $Credential) { throw 'No credentials supplied.' }
 }
 
-$script:Conn = @{ Base = "https://$Fqdn"; Skip = [bool]$SkipCertificateCheck; Token = $null; CloudApiVersion = $null }
+$script:Conn = @{ Base = "https://$Fqdn"; Skip = [bool]$SkipCertificateCheck; Token = $null; CloudApiVersion = $null; RefreshToken = $null }
 $script:Log = New-Object System.Collections.Generic.List[object]
 $script:UsedPaths = @{}
 $script:AuthInfo = ''
@@ -635,10 +703,15 @@ foreach ($i in $inventory) {
     }
 }
 
-# Catalog item -> template: 9.x items point at the template in externalId (/blueprint/api/blueprints/<id>)
+# Catalog item -> template: items point at the template in externalId (/blueprint/api/blueprints/<id>)
 foreach ($i in ($inventory | Where-Object Kind -eq 'catalog-item')) {
     $bpId = $i.Id
     $ext = "$(Get-P $i.Obj @('externalId'))"
+    if (-not $ext) {
+        # Aria 8.x list entries leave externalId out; the item detail has it
+        $full = Get-Safe 'Catalog item' "/catalog/api/admin/items/$($i.Id)" -Quiet404
+        $ext = "$(Get-P $full @('externalId'))"
+    }
     if ($ext -match '/blueprint/api/blueprints/([^/?]+)') { $bpId = $Matches[1] }
     $bpKey = "template|$bpId"
     if ($byKey.ContainsKey($bpKey)) { Add-Link $i.Key $bpKey 'publishes' }
@@ -739,7 +812,7 @@ $stamp = Get-Date -Format 'yyyyMMdd'
 if (-not $OutputPath) { $OutputPath = (Get-Location).Path }
 # Resolve to a full path: .NET file calls in Windows PowerShell do not follow the PowerShell location
 $OutputPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputPath)
-$orgDir = Join-Path $OutputPath "VM Apps - $(ConvertTo-SafeName $Organization)"
+$orgDir = Join-Path $OutputPath "$orgLabel - $(ConvertTo-SafeName $Organization)"
 if (-not (Test-Path $orgDir)) { [void](New-Item -ItemType Directory -Path $orgDir -Force) }
 $baseName = "$(ConvertTo-SafeName $Organization)_$stamp"
 $name = $baseName; $n = 1
@@ -1013,13 +1086,17 @@ $finalLinks = @($links | Where-Object {
 $counts = [ordered]@{}
 foreach ($g in ($objects | Group-Object { $_.type })) { $counts[$g.Name] = $g.Count }
 
+$productName         = if ($Version -eq '8') { 'Aria Automation' } else { 'VCF Automation' }
+$productVersionLabel = if ($Version -eq '8') { '8.x' } else { '9.x' }
+
 $manifest = [ordered]@{
     format        = 'vcfapkg'
     formatVersion = $FormatVersion
     tool          = [ordered]@{ name = $ToolName; version = $ToolVersion }
     source        = [ordered]@{
-        product      = 'VCF Automation'
-        orgType      = 'VM Apps'
+        product      = $productName
+        productVersion = $productVersionLabel
+        orgType      = $orgLabel
         fqdn         = $Fqdn
         organization = $Organization
         apiVersion   = $apiVersion

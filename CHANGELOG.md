@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026.5.0 - 2026-11-23
+
+- New `-Version 8|9` switch (default `9`). `-Version 8` exports an **Aria Automation 8.x tenant** instead of a VCF Automation 9.x VM Apps organization
+- 8.x login: CSP login (`/csp/gateway/am/api/login?access_token`, user, password and domain) gives a refresh token, which `/iaas/api/login` exchanges for the bearer token. `-UseApiToken` with `-Version 8` takes the refresh token directly. The refresh token is kept in memory for the run only, so an expired bearer token is renewed without asking again
+- `-Organization` is the tenant name for 8.x. The CSP login domain is `-AuthDomain` (e.g. `System Domain` for local users), defaulting to `-Organization`
+- `manifest.json` `source` records `product` (`Aria Automation` or `VCF Automation`), `productVersion` (`8.x` or `9.x`) and `orgType` (`Tenant` or `VM Apps`). Output folder is `Tenant - <tenant>` on 8.x
+- Catalog item → template link falls back to the item detail when the list entry has no `externalId` (8.x list entries do not include it). On 9.x nothing changes unless that field is missing
+
 ## 2026.4.0 - 2026-10-30
 
 - vRO workflows the package runs (subscriptions, recover workflows, resource actions, custom resources) are now looked up in the built-in Orchestrator (`/vco/api/workflows/{id}`), so they show by name instead of id

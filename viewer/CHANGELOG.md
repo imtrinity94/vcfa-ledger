@@ -2,6 +2,11 @@
 
 Year-based versions (YEAR.MINOR.PATCH), single source in `package.json`.
 
+## 2026.11.2 - 2026-11-23
+
+- Overview heading shows the export type from the package (`Tenant export` for 8.x packages, `VM Apps organization export` otherwise)
+- Manifest type knows `source.productVersion` (collector 2026.5.0+)
+
 ## 2026.11.1 - 2026-11-20
 
 - Request form preview: bound defaults are shown readably (`"lab-" + vmName` instead of raw JSON)
