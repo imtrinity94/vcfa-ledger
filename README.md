@@ -33,7 +33,7 @@ It asks for the FQDN, organization, TLS check and credentials. Useful switches:
 | Switch | Effect |
 |---|---|
 | `-Fqdn`, `-Organization`, `-Credential` | Skip the prompts |
-| `-Version 8\|9` | `9` (default): VCF Automation 9.x VM Apps organization. `8`: Aria Automation 8.x tenant (CSP login, then `/iaas/api/login`). `-Organization` is the tenant name, e.g. `System Domain` |
+| `-Version 8\|9` | `9` (default): VCF Automation 9.x VM Apps organization. `8`: Aria Automation 8.x tenant (CSP login, then `/iaas/api/login`). `-Organization` is the tenant name. `-AuthDomain` is the login domain sent to CSP (default: `-Organization`), e.g. `System Domain` for local users |
 | `-UseApiToken` | Log in with an org API token (`/oauth/tenant/<org>/token`) instead of username/password. With `-Version 8` it takes the CSP refresh token |
 | `-SkipCertificateCheck` | Lab / self-signed certificates |
 | `-Select` | Pick what to export (grid window on Windows, numbered menu elsewhere). Related objects are added automatically. |

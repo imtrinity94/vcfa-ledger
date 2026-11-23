@@ -39,6 +39,8 @@
 .EXAMPLE
     .\Export-VCFALedgerPackage.ps1 -Version 8 -Fqdn ca-vra.example.local -Organization "System Domain" -SkipCertificateCheck
     Aria Automation 8.x: logs in through CSP (user, password, domain) and exports one tenant.
+    The login domain is -AuthDomain (default: -Organization), so the tenant name and the
+    login domain can differ, e.g. -Organization acme -AuthDomain "System Domain".
 #>
 [CmdletBinding()]
 param(
@@ -54,7 +56,9 @@ param(
     [string]$OutputPath,
     # 9 = VCF Automation 9.x VM Apps organization (default). 8 = Aria Automation 8.x tenant.
     [ValidateSet('8', '9')]
-    [string]$Version = '9'
+    [string]$Version = '9',
+    # 8.x only: domain sent with the CSP login (e.g. 'System Domain' for local users). Defaults to -Organization.
+    [string]$AuthDomain
 )
 
 $ErrorActionPreference = 'Stop'
@@ -219,7 +223,8 @@ function Connect-Aria8 {
             else {
                 $user = "$($Credential.UserName)"
                 if ($user -match "^(.+)@$([regex]::Escape($Organization))$") { $user = $Matches[1] }
-                $body = @{ username = $user; password = $Credential.GetNetworkCredential().Password; domain = $Organization } | ConvertTo-Json -Compress
+                $authDomain = if ($AuthDomain) { $AuthDomain } else { $Organization }
+                $body = @{ username = $user; password = $Credential.GetNetworkCredential().Password; domain = $authDomain } | ConvertTo-Json -Compress
                 try {
                     $csp = Invoke-RestMethod @wo -Method Post -Uri "$base/csp/gateway/am/api/login?access_token" `
                         -Body $body -ContentType 'application/json' -Headers @{ Accept = 'application/json' }
@@ -227,7 +232,7 @@ function Connect-Aria8 {
                 catch { throw "Login failed (CSP): $(Get-ErrMsg $_)" }
                 if (-not $csp.refresh_token) { throw 'Login failed: CSP returned no refresh token.' }
                 $script:Conn.RefreshToken = "$($csp.refresh_token)"
-                $script:AuthInfo = "CSP login as $user (domain $Organization), then /iaas/api/login"
+                $script:AuthInfo = "CSP login as $user (domain $authDomain), then /iaas/api/login"
             }
         }
         try {
