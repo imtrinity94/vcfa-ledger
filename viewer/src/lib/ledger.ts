@@ -63,7 +63,7 @@ export interface Manifest {
   format: string;
   formatVersion: string;
   tool: { name: string; version: string };
-  source: { product?: string; orgType?: string; fqdn?: string; organization?: string; apiVersion?: string; cloudApiVersion?: string; auth?: string };
+  source: { product?: string; productVersion?: string; orgType?: string; fqdn?: string; organization?: string; apiVersion?: string; cloudApiVersion?: string; auth?: string };
   exportedAt?: string;
   exportedBy?: string;
   selection?: string;

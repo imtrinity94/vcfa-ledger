@@ -52,7 +52,7 @@ Each JSON file holds the object exactly as the API returned it, apart from the l
   "formatVersion": "1.0",
   "tool": { "name": "VCFA Ledger Collector", "version": "2026.1.0" },
   "source": {
-    "product": "VCF Automation", "orgType": "VM Apps",
+    "product": "VCF Automation", "productVersion": "9.x", "orgType": "VM Apps",
     "fqdn": "auto.vmw.lab", "organization": "lab",
     "apiVersion": "...", "cloudApiVersion": "40.0", "auth": "..."
   },
@@ -66,6 +66,15 @@ Each JSON file holds the object exactly as the API returned it, apart from the l
   "log": [ ... ]
 }
 ```
+
+### source
+
+| Field | 9.x export | 8.x export | Notes |
+|---|---|---|---|
+| `product` | `VCF Automation` | `Aria Automation` | Missing in packages from before 2026.1, viewer falls back to `VCF Automation` |
+| `productVersion` | `9.x` | `8.x` | Added in collector 2026.5.0; absent in older packages |
+| `orgType` | `VM Apps` | `Tenant` | `organization` holds the VM Apps organization or the 8.x tenant name |
+| `cloudApiVersion` | e.g. `40.0` | `null` | 8.x does not use the cloudapi session |
 
 ### objects[]
 

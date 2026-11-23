@@ -18,7 +18,7 @@ export function Overview({ ledger, onNav, onCatalog }: { ledger: Ledger; onNav: 
   return (
     <div className="stack">
       <div className="el-head">
-        <div className="el-kind">VM Apps organization export</div>
+        <div className="el-kind">{m.source.orgType ? `${m.source.orgType} export` : "VM Apps organization export"}</div>
         <h1>{m.source.organization || ledger.fileName}</h1>
         <div className="chips">
           {m.source.fqdn && <span className="chip mono">{m.source.fqdn}</span>}
